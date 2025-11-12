@@ -14,7 +14,166 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      daily_ratings: {
+        Row: {
+          communication_score: number | null
+          created_at: string
+          empathy_score: number | null
+          id: string
+          listening_score: number | null
+          notes: string | null
+          overall_feeling: number | null
+          rated_id: string
+          rater_id: string
+          rating_date: string
+          relationship_id: string
+        }
+        Insert: {
+          communication_score?: number | null
+          created_at?: string
+          empathy_score?: number | null
+          id?: string
+          listening_score?: number | null
+          notes?: string | null
+          overall_feeling?: number | null
+          rated_id: string
+          rater_id: string
+          rating_date: string
+          relationship_id: string
+        }
+        Update: {
+          communication_score?: number | null
+          created_at?: string
+          empathy_score?: number | null
+          id?: string
+          listening_score?: number | null
+          notes?: string | null
+          overall_feeling?: number | null
+          rated_id?: string
+          rater_id?: string
+          rating_date?: string
+          relationship_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_ratings_relationship_id_fkey"
+            columns: ["relationship_id"]
+            isOneToOne: false
+            referencedRelation: "relationships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      date_suggestions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_completed: boolean | null
+          location_name: string
+          location_type: string | null
+          reason: string | null
+          relationship_id: string
+          suggestion_date: string
+          temperature: string | null
+          weather_condition: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean | null
+          location_name: string
+          location_type?: string | null
+          reason?: string | null
+          relationship_id: string
+          suggestion_date: string
+          temperature?: string | null
+          weather_condition?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_completed?: boolean | null
+          location_name?: string
+          location_type?: string | null
+          reason?: string | null
+          relationship_id?: string
+          suggestion_date?: string
+          temperature?: string | null
+          weather_condition?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "date_suggestions_relationship_id_fkey"
+            columns: ["relationship_id"]
+            isOneToOne: false
+            referencedRelation: "relationships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          id: string
+          nickname: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          id: string
+          nickname?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          nickname?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      relationships: {
+        Row: {
+          created_at: string
+          id: string
+          met_date: string
+          partner_id: string | null
+          relationship_status: string | null
+          together_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          met_date: string
+          partner_id?: string | null
+          relationship_status?: string | null
+          together_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          met_date?: string
+          partner_id?: string | null
+          relationship_status?: string | null
+          together_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
