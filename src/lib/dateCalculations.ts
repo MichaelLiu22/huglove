@@ -45,7 +45,7 @@ export const calculateAnniversaries = (
   // 计算每年的情人节、圣诞节等节日
   const currentYear = new Date().getFullYear();
   const festivals = [
-    { month: 1, day: 14, title: "情人节" },
+    { month: 2, day: 14, title: "情人节" },
     { month: 4, day: 1, title: "愚人节" },
     { month: 4, day: 5, title: "清明节（约）" },
     { month: 5, day: 20, title: "520表白日" },
@@ -55,8 +55,8 @@ export const calculateAnniversaries = (
     { month: 9, day: 9, title: "重阳节" },
     { month: 11, day: 11, title: "光棍节" },
     { month: 11, day: 24, title: "感恩节（约）" },
-    { month: 11, day: 25, title: "圣诞节" },
-    { month: 11, day: 31, title: "跨年夜" },
+    { month: 12, day: 25, title: "圣诞节" },
+    { month: 12, day: 31, title: "跨年夜" },
   ];
 
   for (let year = currentYear; year <= currentYear + 1; year++) {

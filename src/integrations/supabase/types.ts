@@ -61,6 +61,39 @@ export type Database = {
           },
         ]
       }
+      couple_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          photo_date: string
+          photo_url: string
+          relationship_id: string
+          updated_at: string
+          uploader_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_date?: string
+          photo_url: string
+          relationship_id: string
+          updated_at?: string
+          uploader_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_date?: string
+          photo_url?: string
+          relationship_id?: string
+          updated_at?: string
+          uploader_id?: string
+        }
+        Relationships: []
+      }
       daily_ratings: {
         Row: {
           communication_score: number | null

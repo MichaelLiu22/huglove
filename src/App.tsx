@@ -10,6 +10,7 @@ import PartnerLink from "./pages/PartnerLink";
 import DailyRating from "./pages/DailyRating";
 import RatingHistory from "./pages/RatingHistory";
 import Diary from "./pages/Diary";
+import Photos from "./pages/Photos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/rating/history" element={<RatingHistory />} />
             <Route path="/diary" element={<Diary />} />
             <Route path="/diary/:id" element={<Diary />} />
+            <Route path="/photos" element={<Photos />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

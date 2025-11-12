@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { DateSetup } from "@/components/DateSetup";
 import { AnniversaryCard } from "@/components/AnniversaryCard";
 import { calculateAnniversaries, getDaysTogether } from "@/lib/dateCalculations";
-import { Heart, Calendar, Sparkles, LogOut, Users, Star, BookHeart } from "lucide-react";
+import { Heart, Calendar, Sparkles, LogOut, Users, Star, BookHeart, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -143,6 +143,15 @@ const Index = () => {
               >
                 <BookHeart className="w-4 h-4 mr-2" />
                 日记
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/photos')}
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                <Image className="w-4 h-4 mr-2" />
+                照片
               </Button>
               <Button
                 variant="outline"
