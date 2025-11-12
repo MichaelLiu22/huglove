@@ -48,6 +48,11 @@ const PartnerLink = () => {
       if (relError) throw relError;
       
       setRelationship(rel);
+      
+      // 自动设置相识日期为注册时填写的日期
+      if (rel?.met_date) {
+        setMetDate(new Date(rel.met_date));
+      }
 
       if (rel?.partner_id) {
         const { data: partnerProfile, error: partnerError } = await supabase
@@ -265,29 +270,13 @@ const PartnerLink = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>相识日期 *</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !metDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {metDate ? format(metDate, "PPP", { locale: zhCN }) : "选择你们相识的日期"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={metDate}
-                            onSelect={setMetDate}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <Label>相识日期</Label>
+                      <div className="p-3 bg-muted/50 rounded-lg border border-border">
+                        <p className="text-sm text-muted-foreground mb-1">你们的相识日期</p>
+                        <p className="font-semibold">
+                          {metDate ? format(metDate, "PPP", { locale: zhCN }) : "未设置"}
+                        </p>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
