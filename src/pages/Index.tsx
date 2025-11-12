@@ -4,8 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { DateSetup } from "@/components/DateSetup";
 import { AnniversaryCard } from "@/components/AnniversaryCard";
 import { calculateAnniversaries, getDaysTogether } from "@/lib/dateCalculations";
-import { Heart, Calendar, Sparkles, LogOut } from "lucide-react";
+import { Heart, Calendar, Sparkles, LogOut, Users, Star, BookHeart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,6 +17,7 @@ const Index = () => {
   const [togetherDate, setTogetherDate] = useState<Date | null>(null);
   const [showSetup, setShowSetup] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState<number>(30); // 默认显示1个月
 
   useEffect(() => {
     if (!authLoading) {
@@ -96,7 +98,7 @@ const Index = () => {
 
   const anniversaries = calculateAnniversaries(metDate, togetherDate);
   const daysTogether = getDaysTogether(togetherDate);
-  const upcomingAnniversaries = anniversaries.filter(a => !a.isPast && a.daysUntil <= 30);
+  const upcomingAnniversaries = anniversaries.filter(a => !a.isPast && a.daysUntil <= timeRange);
   const pastAnniversaries = anniversaries.filter(a => a.isPast);
 
   return (
@@ -116,12 +118,39 @@ const Index = () => {
             </div>
             <div className="flex gap-2">
               <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/partner')}
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                伴侣
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/rating')}
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                <Star className="w-4 h-4 mr-2" />
+                评分
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/diary')}
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                <BookHeart className="w-4 h-4 mr-2" />
+                日记
+              </Button>
+              <Button
                 variant="outline"
                 size="sm"
                 onClick={handleReset}
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
-                重新设置
+                重置
               </Button>
               <Button
                 variant="outline"
@@ -129,8 +158,7 @@ const Index = () => {
                 onClick={() => signOut()}
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                退出
+                <LogOut className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -182,9 +210,22 @@ const Index = () => {
         {/* Upcoming Anniversaries */}
         {upcomingAnniversaries.length > 0 && (
           <section className="animate-fade-in">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-1 h-6 bg-gradient-primary rounded-full"></div>
-              <h2 className="text-2xl font-bold text-foreground">即将到来</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-6 bg-gradient-primary rounded-full"></div>
+                <h2 className="text-2xl font-bold text-foreground">未来纪念日</h2>
+              </div>
+              <Select value={timeRange.toString()} onValueChange={(v) => setTimeRange(Number(v))}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30">1个月</SelectItem>
+                  <SelectItem value="90">3个月</SelectItem>
+                  <SelectItem value="180">6个月</SelectItem>
+                  <SelectItem value="365">1年</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {upcomingAnniversaries.map((anniversary) => (
@@ -194,20 +235,6 @@ const Index = () => {
           </section>
         )}
 
-        {/* All Future Anniversaries */}
-        <section className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1 h-6 bg-gradient-primary rounded-full"></div>
-            <h2 className="text-2xl font-bold text-foreground">未来的纪念日</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {anniversaries
-              .filter(a => !a.isPast && a.daysUntil > 30)
-              .map((anniversary) => (
-                <AnniversaryCard key={anniversary.id} {...anniversary} />
-              ))}
-          </div>
-        </section>
 
         {/* Past Anniversaries */}
         {pastAnniversaries.length > 0 && (

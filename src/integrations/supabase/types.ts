@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      couple_diaries: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          diary_date: string
+          id: string
+          is_shared: boolean
+          mood: string | null
+          relationship_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          diary_date?: string
+          id?: string
+          is_shared?: boolean
+          mood?: string | null
+          relationship_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          diary_date?: string
+          id?: string
+          is_shared?: boolean
+          mood?: string | null
+          relationship_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "couple_diaries_relationship_id_fkey"
+            columns: ["relationship_id"]
+            isOneToOne: false
+            referencedRelation: "relationships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_ratings: {
         Row: {
           communication_score: number | null
@@ -107,6 +154,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "date_suggestions_relationship_id_fkey"
+            columns: ["relationship_id"]
+            isOneToOne: false
+            referencedRelation: "relationships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_invitations: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          invitation_code: string
+          inviter_id: string
+          relationship_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invitation_code: string
+          inviter_id: string
+          relationship_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invitation_code?: string
+          inviter_id?: string
+          relationship_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_invitations_relationship_id_fkey"
             columns: ["relationship_id"]
             isOneToOne: false
             referencedRelation: "relationships"
