@@ -1,0 +1,116 @@
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, nickname?: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  loading: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // 设置auth状态监听器
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    // 检查现有session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      toast.success('登录成功！');
+      navigate('/');
+    } catch (error: any) {
+      toast.error(error.message || '登录失败');
+      throw error;
+    }
+  };
+
+  const signUp = async (email: string, password: string, nickname?: string) => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            nickname: nickname || email.split('@')[0]
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success('注册成功！正在为你登录...');
+      navigate('/');
+    } catch (error: any) {
+      if (error.message.includes('already registered')) {
+        toast.error('该邮箱已被注册');
+      } else {
+        toast.error(error.message || '注册失败');
+      }
+      throw error;
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast.success('已退出登录');
+      navigate('/auth');
+    } catch (error: any) {
+      toast.error(error.message || '退出失败');
+      throw error;
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, session, signIn, signUp, signOut, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
