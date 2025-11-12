@@ -237,6 +237,9 @@ export type Database = {
           id: string
           invitation_code: string
           inviter_id: string
+          love_message: string | null
+          met_date: string | null
+          recipient_name: string | null
           relationship_id: string
           status: string
         }
@@ -246,6 +249,9 @@ export type Database = {
           id?: string
           invitation_code: string
           inviter_id: string
+          love_message?: string | null
+          met_date?: string | null
+          recipient_name?: string | null
           relationship_id: string
           status?: string
         }
@@ -255,6 +261,9 @@ export type Database = {
           id?: string
           invitation_code?: string
           inviter_id?: string
+          love_message?: string | null
+          met_date?: string | null
+          recipient_name?: string | null
           relationship_id?: string
           status?: string
         }

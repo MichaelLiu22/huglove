@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import PartnerLink from "./pages/PartnerLink";
+import InvitationAccept from "./pages/InvitationAccept";
 import DailyRating from "./pages/DailyRating";
 import RatingHistory from "./pages/RatingHistory";
 import Diary from "./pages/Diary";
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/partner" element={<PartnerLink />} />
+            <Route path="/invitation" element={<InvitationAccept />} />
             <Route path="/rating" element={<DailyRating />} />
             <Route path="/rating/history" element={<RatingHistory />} />
             <Route path="/diary" element={<Diary />} />

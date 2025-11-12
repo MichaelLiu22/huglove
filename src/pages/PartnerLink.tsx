@@ -3,10 +3,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Heart, Copy, UserPlus, ArrowLeft, Users } from "lucide-react";
+import { Heart, Copy, UserPlus, ArrowLeft, Users, Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { zhCN } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 const PartnerLink = () => {
   const { user } = useAuth();
@@ -17,6 +24,11 @@ const PartnerLink = () => {
   const [invitationCode, setInvitationCode] = useState("");
   const [inputCode, setInputCode] = useState("");
   const [codeLoading, setCodeLoading] = useState(false);
+  
+  // Invitation form fields
+  const [recipientName, setRecipientName] = useState("");
+  const [metDate, setMetDate] = useState<Date>();
+  const [loveMessage, setLoveMessage] = useState("从相识的那一刻起，每一天都因为有你而变得特别。让我们一起记录属于我们的美好时光吧。");
 
   useEffect(() => {
     if (user) {
@@ -59,6 +71,16 @@ const PartnerLink = () => {
       return;
     }
 
+    if (!recipientName.trim()) {
+      toast.error('请填写收件人昵称');
+      return;
+    }
+    
+    if (!metDate) {
+      toast.error('请选择相识日期');
+      return;
+    }
+
     setCodeLoading(true);
     try {
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -69,13 +91,16 @@ const PartnerLink = () => {
           relationship_id: relationship.id,
           inviter_id: user?.id,
           invitation_code: code,
-          status: 'pending'
+          status: 'pending',
+          recipient_name: recipientName,
+          met_date: format(metDate, 'yyyy-MM-dd'),
+          love_message: loveMessage,
         });
 
       if (error) throw error;
       
       setInvitationCode(code);
-      toast.success('邀请码生成成功！');
+      toast.success('浪漫邀请生成成功！');
     } catch (error: any) {
       console.error('Error generating code:', error);
       toast.error('生成邀请码失败');
@@ -85,8 +110,9 @@ const PartnerLink = () => {
   };
 
   const copyInvitationCode = () => {
-    navigator.clipboard.writeText(invitationCode);
-    toast.success('邀请码已复制');
+    const link = `${window.location.origin}/invitation?code=${invitationCode}`;
+    navigator.clipboard.writeText(link);
+    toast.success('邀请链接已复制');
   };
 
   const acceptInvitation = async () => {
@@ -217,22 +243,79 @@ const PartnerLink = () => {
             <Card className="shadow-soft">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <UserPlus className="w-5 h-5" />
-                  生成邀请码
+                  <Heart className="w-5 h-5 text-primary" fill="currentColor" />
+                  生成浪漫邀请
                 </CardTitle>
                 <CardDescription>
-                  生成邀请码并分享给您的伴侣
+                  创建一封爱的信件，邀请TA成为你的伴侣
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {invitationCode ? (
+                {!invitationCode ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="recipient-name">收件人昵称 *</Label>
+                      <Input
+                        id="recipient-name"
+                        placeholder="给TA起一个特别的称呼"
+                        value={recipientName}
+                        onChange={(e) => setRecipientName(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>相识日期 *</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !metDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {metDate ? format(metDate, "PPP", { locale: zhCN }) : "选择你们相识的日期"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={metDate}
+                            onSelect={setMetDate}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="love-message">情话（可编辑）</Label>
+                      <Textarea
+                        id="love-message"
+                        placeholder="写下你想对TA说的话..."
+                        value={loveMessage}
+                        onChange={(e) => setLoveMessage(e.target.value)}
+                        rows={4}
+                      />
+                    </div>
+
+                    <Button
+                      onClick={generateInvitationCode}
+                      className="w-full"
+                      disabled={codeLoading}
+                    >
+                      <Heart className="w-4 h-4 mr-2" fill="currentColor" />
+                      {codeLoading ? '生成中...' : '生成浪漫邀请'}
+                    </Button>
+                  </>
+                ) : (
                   <div className="space-y-3">
-                    <div className="p-6 bg-gradient-primary rounded-lg text-center">
-                      <p className="text-white/80 text-sm mb-2">您的邀请码</p>
-                      <p className="text-white text-3xl font-bold tracking-wider mb-2">
-                        {invitationCode}
+                    <div className="p-4 bg-primary/10 rounded-lg border-2 border-primary/20">
+                      <p className="text-sm text-muted-foreground mb-2">邀请链接</p>
+                      <p className="font-mono text-sm break-all text-primary font-semibold">
+                        {window.location.origin}/invitation?code={invitationCode}
                       </p>
-                      <p className="text-white/60 text-xs">24小时内有效</p>
                     </div>
                     <Button
                       onClick={copyInvitationCode}
@@ -240,17 +323,12 @@ const PartnerLink = () => {
                       variant="outline"
                     >
                       <Copy className="w-4 h-4 mr-2" />
-                      复制邀请码
+                      复制邀请链接
                     </Button>
+                    <p className="text-xs text-muted-foreground text-center">
+                      邀请链接24小时内有效
+                    </p>
                   </div>
-                ) : (
-                  <Button
-                    onClick={generateInvitationCode}
-                    className="w-full"
-                    disabled={codeLoading}
-                  >
-                    {codeLoading ? '生成中...' : '生成邀请码'}
-                  </Button>
                 )}
               </CardContent>
             </Card>

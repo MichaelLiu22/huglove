@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // 使用用户名生成内部邮箱格式
       const email = username.includes('@') ? username : `${username}@couples.app`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -83,6 +83,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       
       if (error) throw error;
+      
+      // Check for pending invitation
+      const pendingInvitation = sessionStorage.getItem('pending_invitation');
+      if (pendingInvitation && data.user) {
+        const invitationData = JSON.parse(pendingInvitation);
+        
+        // Accept the invitation automatically
+        setTimeout(async () => {
+          try {
+            const { data: invitation, error: invError } = await supabase
+              .from('partner_invitations')
+              .select('*, relationships(*)')
+              .eq('invitation_code', invitationData.code)
+              .eq('status', 'pending')
+              .maybeSingle();
+
+            if (invError || !invitation) throw invError;
+
+            // Update inviter's relationship
+            await supabase
+              .from('relationships')
+              .update({ partner_id: data.user.id })
+              .eq('id', invitation.relationship_id);
+
+            // Create relationship for the new user
+            await supabase
+              .from('relationships')
+              .insert({
+                user_id: data.user.id,
+                partner_id: invitation.inviter_id,
+                met_date: invitationData.met_date,
+                together_date: invitation.relationships.together_date,
+                relationship_status: 'active'
+              });
+
+            // Update invitation status
+            await supabase
+              .from('partner_invitations')
+              .update({ status: 'accepted' })
+              .eq('id', invitation.id);
+
+            sessionStorage.removeItem('pending_invitation');
+            toast.success('已成功关联伴侣！');
+          } catch (error: any) {
+            console.error('Error accepting invitation:', error);
+          }
+        }, 2000);
+      }
       
       toast.success('注册成功！正在为你登录...');
       navigate('/');
