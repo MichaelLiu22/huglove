@@ -194,6 +194,42 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          message: string
+          notification_type: string
+          relationship_id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message: string
+          notification_type: string
+          relationship_id: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string
+          notification_type?: string
+          relationship_id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       partner_invitations: {
         Row: {
           created_at: string
@@ -232,6 +268,42 @@ export type Database = {
           },
         ]
       }
+      pending_approvals: {
+        Row: {
+          action_data: Json | null
+          action_type: string
+          approver_id: string
+          created_at: string
+          id: string
+          relationship_id: string
+          requester_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action_data?: Json | null
+          action_type: string
+          approver_id: string
+          created_at?: string
+          id?: string
+          relationship_id: string
+          requester_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action_data?: Json | null
+          action_type?: string
+          approver_id?: string
+          created_at?: string
+          id?: string
+          relationship_id?: string
+          requester_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -266,6 +338,7 @@ export type Database = {
           met_date: string
           partner_id: string | null
           relationship_status: string | null
+          space_name: string | null
           together_date: string
           updated_at: string
           user_id: string
@@ -276,6 +349,7 @@ export type Database = {
           met_date: string
           partner_id?: string | null
           relationship_status?: string | null
+          space_name?: string | null
           together_date: string
           updated_at?: string
           user_id: string
@@ -286,6 +360,7 @@ export type Database = {
           met_date?: string
           partner_id?: string | null
           relationship_status?: string | null
+          space_name?: string | null
           together_date?: string
           updated_at?: string
           user_id?: string

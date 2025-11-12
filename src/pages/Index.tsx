@@ -3,10 +3,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { DateSetup } from "@/components/DateSetup";
 import { AnniversaryCard } from "@/components/AnniversaryCard";
+import { NotificationCenter } from "@/components/NotificationCenter";
 import { calculateAnniversaries, getDaysTogether } from "@/lib/dateCalculations";
-import { Heart, Calendar, Sparkles, LogOut, Users, Star, BookHeart, Image } from "lucide-react";
+import { Heart, Calendar, Sparkles, LogOut, Users, Star, BookHeart, Image, Edit2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -18,6 +22,11 @@ const Index = () => {
   const [showSetup, setShowSetup] = useState(true);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<number>(30); // 默认显示1个月
+  const [spaceName, setSpaceName] = useState("我们的小空间");
+  const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [relationshipId, setRelationshipId] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [newSpaceName, setNewSpaceName] = useState("");
 
   useEffect(() => {
     if (!authLoading) {
@@ -42,6 +51,9 @@ const Index = () => {
       if (data) {
         setMetDate(new Date(data.met_date));
         setTogetherDate(new Date(data.together_date));
+        setSpaceName(data.space_name || '我们的小空间');
+        setPartnerId(data.partner_id);
+        setRelationshipId(data.id);
         setShowSetup(false);
       }
     } catch (error: any) {
@@ -75,10 +87,119 @@ const Index = () => {
     }
   };
 
-  const handleReset = () => {
-    setMetDate(null);
-    setTogetherDate(null);
-    setShowSetup(true);
+  const handleReset = async () => {
+    if (!relationshipId) return;
+    
+    if (partnerId) {
+      // Need partner approval
+      try {
+        const { error } = await supabase
+          .from('pending_approvals')
+          .insert({
+            relationship_id: relationshipId,
+            requester_id: user?.id,
+            approver_id: partnerId,
+            action_type: 'reset',
+            action_data: {},
+          });
+
+        if (error) throw error;
+
+        // Send notification
+        await supabase.from('notifications').insert({
+          user_id: partnerId,
+          relationship_id: relationshipId,
+          notification_type: 'approval_request',
+          title: '重置请求',
+          message: '伴侣希望重置数据，请查看并批准',
+          link: '/approvals',
+        });
+
+        toast.success('已发送重置请求，等待伴侣批准');
+      } catch (error: any) {
+        console.error('Error requesting reset:', error);
+        toast.error('发送请求失败');
+      }
+    } else {
+      // No partner, reset directly
+      if (!confirm('确定要重置所有数据吗？此操作不可恢复！')) return;
+      
+      try {
+        const { error } = await supabase
+          .from('relationships')
+          .delete()
+          .eq('id', relationshipId);
+
+        if (error) throw error;
+
+        setMetDate(null);
+        setTogetherDate(null);
+        setShowSetup(true);
+        toast.success('数据已重置');
+      } catch (error: any) {
+        console.error('Error resetting:', error);
+        toast.error('重置失败');
+      }
+    }
+  };
+
+  const handleEditName = async () => {
+    if (!newSpaceName.trim()) {
+      toast.error('名称不能为空');
+      return;
+    }
+
+    if (!relationshipId) return;
+
+    if (partnerId) {
+      // Need partner approval
+      try {
+        const { error } = await supabase
+          .from('pending_approvals')
+          .insert({
+            relationship_id: relationshipId,
+            requester_id: user?.id,
+            approver_id: partnerId,
+            action_type: 'edit_name',
+            action_data: { new_name: newSpaceName },
+          });
+
+        if (error) throw error;
+
+        // Send notification
+        await supabase.from('notifications').insert({
+          user_id: partnerId,
+          relationship_id: relationshipId,
+          notification_type: 'approval_request',
+          title: '修改名称请求',
+          message: `伴侣希望将小空间名称改为"${newSpaceName}"`,
+          link: '/approvals',
+        });
+
+        toast.success('已发送修改请求，等待伴侣批准');
+        setIsEditDialogOpen(false);
+      } catch (error: any) {
+        console.error('Error requesting name change:', error);
+        toast.error('发送请求失败');
+      }
+    } else {
+      // No partner, update directly
+      try {
+        const { error } = await supabase
+          .from('relationships')
+          .update({ space_name: newSpaceName })
+          .eq('id', relationshipId);
+
+        if (error) throw error;
+
+        setSpaceName(newSpaceName);
+        setIsEditDialogOpen(false);
+        toast.success('名称已更新');
+      } catch (error: any) {
+        console.error('Error updating name:', error);
+        toast.error('更新失败');
+      }
+    }
   };
 
   if (authLoading || loading) {
@@ -112,11 +233,59 @@ const Index = () => {
                 <Heart className="w-6 h-6" fill="white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">我们的小空间</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold">{spaceName}</h1>
+                  <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-white hover:bg-white/20"
+                        onClick={() => setNewSpaceName(spaceName)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>修改小空间名称</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="space-name">新名称</Label>
+                          <Input
+                            id="space-name"
+                            value={newSpaceName}
+                            onChange={(e) => setNewSpaceName(e.target.value)}
+                            placeholder="输入新名称"
+                          />
+                        </div>
+                        {partnerId && (
+                          <p className="text-sm text-muted-foreground">
+                            由于你已关联伴侣，此修改需要经过伴侣批准
+                          </p>
+                        )}
+                        <Button onClick={handleEditName} className="w-full">
+                          {partnerId ? '发送请求' : '确认修改'}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
                 <p className="text-white/80 text-sm">记录每一个美好时刻</p>
               </div>
             </div>
             <div className="flex gap-2">
+              <NotificationCenter userId={user?.id || ''} />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/approvals')}
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+                批准
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"

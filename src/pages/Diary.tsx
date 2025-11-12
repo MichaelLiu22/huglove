@@ -37,6 +37,7 @@ const Diary = () => {
   const [mode, setMode] = useState<'list' | 'edit' | 'view'>('list');
   const [currentDiary, setCurrentDiary] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [diaryToDelete, setDiaryToDelete] = useState<any>(null);
   
   // Form state
   const [title, setTitle] = useState("");
@@ -154,6 +155,18 @@ const Diary = () => {
 
         if (error) throw error;
         toast.success('日记保存成功！');
+        
+        // Send notification to partner if diary is shared
+        if (isShared && relationship.partner_id) {
+          await supabase.from('notifications').insert({
+            user_id: relationship.partner_id,
+            relationship_id: relationship.id,
+            notification_type: 'diary_update',
+            title: '新日记提醒',
+            message: `伴侣写了一篇新日记：${title.trim()}`,
+            link: '/diary',
+          });
+        }
       }
 
       await loadData();
@@ -166,24 +179,63 @@ const Diary = () => {
   };
 
   const handleDelete = async () => {
-    if (!currentDiary) return;
+    if (!diaryToDelete) return;
 
-    try {
-      const { error } = await supabase
-        .from('couple_diaries')
-        .delete()
-        .eq('id', currentDiary.id);
+    // If has partner, need approval
+    if (relationship.partner_id) {
+      try {
+        const { error } = await supabase
+          .from('pending_approvals')
+          .insert({
+            relationship_id: relationship.id,
+            requester_id: user?.id,
+            approver_id: relationship.partner_id,
+            action_type: 'delete_diary',
+            action_data: { 
+              diary_id: diaryToDelete.id,
+              diary_title: diaryToDelete.title
+            },
+          });
 
-      if (error) throw error;
-      
-      toast.success('日记已删除');
-      await loadData();
-      setMode('list');
-      resetForm();
-      setDeleteDialogOpen(false);
-    } catch (error: any) {
-      console.error('Error deleting diary:', error);
-      toast.error('删除失败');
+        if (error) throw error;
+
+        // Send notification
+        await supabase.from('notifications').insert({
+          user_id: relationship.partner_id,
+          relationship_id: relationship.id,
+          notification_type: 'approval_request',
+          title: '删除日记请求',
+          message: `伴侣希望删除日记：${diaryToDelete.title}`,
+          link: '/approvals',
+        });
+
+        toast.success('已发送删除请求，等待伴侣批准');
+        setDeleteDialogOpen(false);
+        setDiaryToDelete(null);
+      } catch (error: any) {
+        console.error('Error requesting delete:', error);
+        toast.error('发送请求失败');
+      }
+    } else {
+      // No partner, delete directly
+      try {
+        const { error } = await supabase
+          .from('couple_diaries')
+          .delete()
+          .eq('id', diaryToDelete.id);
+
+        if (error) throw error;
+        
+        toast.success('日记已删除');
+        await loadData();
+        setMode('list');
+        resetForm();
+        setDeleteDialogOpen(false);
+        setDiaryToDelete(null);
+      } catch (error: any) {
+        console.error('Error deleting diary:', error);
+        toast.error('删除失败');
+      }
     }
   };
 
@@ -306,7 +358,10 @@ const Diary = () => {
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => setDeleteDialogOpen(true)}
+                      onClick={() => {
+                        setDiaryToDelete(currentDiary);
+                        setDeleteDialogOpen(true);
+                      }}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
                       删除

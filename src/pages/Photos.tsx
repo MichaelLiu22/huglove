@@ -27,6 +27,7 @@ const Photos = () => {
   const [relationshipId, setRelationshipId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [partnerId, setPartnerId] = useState<string | null>(null);
   
   // Form state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -141,33 +142,71 @@ const Photos = () => {
   };
 
   const handleDelete = async (photoId: string) => {
-    if (!confirm('确定要删除这张照片吗？')) return;
+    const photo = photos.find(p => p.id === photoId);
+    if (!photo) return;
 
-    try {
-      const photo = photos.find(p => p.id === photoId);
-      if (!photo) return;
+    // If has partner, need approval
+    if (partnerId) {
+      if (!confirm('你的删除请求将发送给伴侣批准，确定继续吗？')) return;
 
-      // Delete from storage
-      const fileName = photo.photo_url.split('/').slice(-2).join('/');
-      const { error: storageError } = await supabase.storage
-        .from('couple-photos')
-        .remove([fileName]);
+      try {
+        const { error } = await supabase
+          .from('pending_approvals')
+          .insert({
+            relationship_id: relationshipId,
+            requester_id: user?.id,
+            approver_id: partnerId,
+            action_type: 'delete_photo',
+            action_data: { 
+              photo_id: photoId,
+              photo_url: photo.photo_url
+            },
+          });
 
-      if (storageError) throw storageError;
+        if (error) throw error;
 
-      // Delete from database
-      const { error: dbError } = await supabase
-        .from('couple_photos')
-        .delete()
-        .eq('id', photoId);
+        // Send notification
+        await supabase.from('notifications').insert({
+          user_id: partnerId,
+          relationship_id: relationshipId,
+          notification_type: 'approval_request',
+          title: '删除照片请求',
+          message: '伴侣希望删除一张照片',
+          link: '/approvals',
+        });
 
-      if (dbError) throw dbError;
+        toast.success('已发送删除请求，等待伴侣批准');
+      } catch (error: any) {
+        console.error('Error requesting delete:', error);
+        toast.error('发送请求失败');
+      }
+    } else {
+      // No partner, delete directly
+      if (!confirm('确定要删除这张照片吗？')) return;
 
-      toast.success('照片已删除');
-      loadRelationshipAndPhotos();
-    } catch (error: any) {
-      console.error('Error deleting photo:', error);
-      toast.error('删除失败，请重试');
+      try {
+        // Delete from storage
+        const fileName = photo.photo_url.split('/').slice(-2).join('/');
+        const { error: storageError } = await supabase.storage
+          .from('couple-photos')
+          .remove([fileName]);
+
+        if (storageError) throw storageError;
+
+        // Delete from database
+        const { error: dbError } = await supabase
+          .from('couple_photos')
+          .delete()
+          .eq('id', photoId);
+
+        if (dbError) throw dbError;
+
+        toast.success('照片已删除');
+        loadRelationshipAndPhotos();
+      } catch (error: any) {
+        console.error('Error deleting photo:', error);
+        toast.error('删除失败，请重试');
+      }
     }
   };
 
