@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { DateSetup } from "@/components/DateSetup";
 import { AnniversaryCard } from "@/components/AnniversaryCard";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { MobileNav } from "@/components/MobileNav";
 import { calculateAnniversaries, getDaysTogether } from "@/lib/dateCalculations";
 import { Heart, Calendar, Sparkles, LogOut, Users, Star, BookHeart, Image, Edit2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -223,18 +224,18 @@ const Index = () => {
   const pastAnniversaries = anniversaries.filter(a => a.isPast);
 
   return (
-    <div className="min-h-screen bg-gradient-soft">
+    <div className="min-h-screen bg-gradient-soft pb-20 md:pb-0">
       {/* Header */}
-      <div className="bg-gradient-primary text-white p-6 shadow-soft">
+      <div className="bg-gradient-primary text-white p-4 md:p-6 shadow-soft">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Heart className="w-6 h-6" fill="white" />
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Heart className="w-5 h-5 md:w-6 md:h-6" fill="white" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold">{spaceName}</h1>
+                  <h1 className="text-xl md:text-2xl font-bold">{spaceName}</h1>
                   <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                     <DialogTrigger asChild>
                       <Button
@@ -243,7 +244,7 @@ const Index = () => {
                         className="h-6 w-6 text-white hover:bg-white/20"
                         onClick={() => setNewSpaceName(spaceName)}
                       >
-                        <Edit2 className="h-4 w-4" />
+                        <Edit2 className="h-3 w-3 md:h-4 md:w-4" />
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
@@ -272,16 +273,18 @@ const Index = () => {
                     </DialogContent>
                   </Dialog>
                 </div>
-                <p className="text-white/80 text-sm">记录每一个美好时刻</p>
+                <p className="text-white/80 text-xs md:text-sm">记录每一个美好时刻</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <NotificationCenter userId={user?.id || ''} />
+            <div className="flex gap-1 md:gap-2">
+              <div className="hidden md:block">
+                <NotificationCenter userId={user?.id || ''} />
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/approvals')}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                className="hidden md:flex bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 <CheckCircle2 className="w-4 h-4 mr-2" />
                 批准
@@ -290,7 +293,7 @@ const Index = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/partner')}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                className="hidden md:flex bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 <Users className="w-4 h-4 mr-2" />
                 伴侣
@@ -299,7 +302,7 @@ const Index = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/rating')}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                className="hidden md:flex bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 <Star className="w-4 h-4 mr-2" />
                 评分
@@ -308,7 +311,7 @@ const Index = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/diary')}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                className="hidden md:flex bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 <BookHeart className="w-4 h-4 mr-2" />
                 日记
@@ -317,7 +320,7 @@ const Index = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/photos')}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                className="hidden md:flex bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 <Image className="w-4 h-4 mr-2" />
                 照片
@@ -326,13 +329,13 @@ const Index = () => {
                 variant="outline"
                 size="sm"
                 onClick={handleReset}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                className="hidden md:flex bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 重置
               </Button>
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
                 onClick={() => signOut()}
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
@@ -341,13 +344,13 @@ const Index = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 md:p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles className="w-4 h-4" />
-                <span className="text-sm text-white/80">相识于</span>
+                <span className="text-xs md:text-sm text-white/80">相识于</span>
               </div>
-              <p className="text-lg font-semibold">
+              <p className="text-base md:text-lg font-semibold">
                 {metDate.toLocaleDateString('zh-CN', { 
                   year: 'numeric', 
                   month: 'long', 
@@ -356,12 +359,12 @@ const Index = () => {
               </p>
             </div>
             
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 md:p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Heart className="w-4 h-4" fill="white" />
-                <span className="text-sm text-white/80">在一起</span>
+                <span className="text-xs md:text-sm text-white/80">在一起</span>
               </div>
-              <p className="text-lg font-semibold">
+              <p className="text-base md:text-lg font-semibold">
                 {togetherDate.toLocaleDateString('zh-CN', { 
                   year: 'numeric', 
                   month: 'long', 
@@ -370,12 +373,12 @@ const Index = () => {
               </p>
             </div>
             
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 md:p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Calendar className="w-4 h-4" />
-                <span className="text-sm text-white/80">已经在一起</span>
+                <span className="text-xs md:text-sm text-white/80">已经在一起</span>
               </div>
-              <p className="text-lg font-semibold">
+              <p className="text-base md:text-lg font-semibold">
                 {daysTogether} 天
               </p>
             </div>
@@ -384,14 +387,14 @@ const Index = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto p-6 space-y-8">
+      <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
         {/* Upcoming Anniversaries */}
         {upcomingAnniversaries.length > 0 && (
           <section className="animate-fade-in">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-1 h-6 bg-gradient-primary rounded-full"></div>
-                <h2 className="text-2xl font-bold text-foreground">未来纪念日</h2>
+                <h2 className="text-xl md:text-2xl font-bold text-foreground">未来纪念日</h2>
               </div>
               <Select value={timeRange.toString()} onValueChange={(v) => setTimeRange(Number(v))}>
                 <SelectTrigger className="w-32">
@@ -405,7 +408,7 @@ const Index = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {upcomingAnniversaries.map((anniversary) => (
                 <AnniversaryCard key={anniversary.id} {...anniversary} />
               ))}
@@ -419,9 +422,9 @@ const Index = () => {
           <section className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-1 h-6 bg-muted rounded-full"></div>
-              <h2 className="text-2xl font-bold text-foreground">已度过的纪念日</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-foreground">已度过的纪念日</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
               {pastAnniversaries.slice(0, 6).map((anniversary) => (
                 <AnniversaryCard key={anniversary.id} {...anniversary} />
               ))}
@@ -429,6 +432,9 @@ const Index = () => {
           </section>
         )}
       </div>
+
+      {/* Mobile Navigation */}
+      <MobileNav userId={user?.id} />
     </div>
   );
 };

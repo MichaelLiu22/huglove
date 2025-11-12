@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { MobileNav } from "@/components/MobileNav";
 import { ArrowLeft, Check, X, Clock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -237,9 +238,9 @@ const Approvals = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-soft">
+    <div className="min-h-screen bg-gradient-soft pb-20 md:pb-0">
       {/* Header */}
-      <div className="bg-gradient-primary text-white p-6 shadow-soft">
+      <div className="bg-gradient-primary text-white p-4 md:p-6 shadow-soft">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
             <Button
@@ -251,21 +252,21 @@ const Approvals = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">批准管理</h1>
-              <p className="text-white/80 text-sm">处理伴侣的请求</p>
+              <h1 className="text-xl md:text-2xl font-bold">批准管理</h1>
+              <p className="text-white/80 text-xs md:text-sm">处理伴侣的请求</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-4 md:p-6">
         <Tabs defaultValue="pending" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="pending">
+            <TabsTrigger value="pending" className="text-sm md:text-base">
               待批准 {pendingApprovals.length > 0 && `(${pendingApprovals.length})`}
             </TabsTrigger>
-            <TabsTrigger value="my-requests">我的请求</TabsTrigger>
+            <TabsTrigger value="my-requests" className="text-sm md:text-base">我的请求</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pending" className="space-y-4">
@@ -361,6 +362,8 @@ const Approvals = () => {
           </TabsContent>
         </Tabs>
       </div>
+      
+      <MobileNav userId={user?.id} />
     </div>
   );
 };

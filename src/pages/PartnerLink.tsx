@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { MobileNav } from "@/components/MobileNav";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Heart, Copy, UserPlus, ArrowLeft, Users, Calendar as CalendarIcon } from "lucide-react";
@@ -196,23 +197,23 @@ const PartnerLink = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-soft p-6">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-soft p-4 md:p-6 pb-20 md:pb-6">
+      <div className="max-w-2xl mx-auto space-y-4 md:space-y-6">
         <Button
           variant="ghost"
           onClick={() => navigate('/')}
-          className="mb-4"
+          className="mb-2 md:mb-4"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           返回
         </Button>
 
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users className="w-8 h-8 text-white" />
+        <div className="text-center mb-6 md:mb-8">
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+            <Users className="w-6 h-6 md:w-8 md:h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">伴侣关联</h1>
-          <p className="text-muted-foreground">关联您的伴侣，一起记录美好时光</p>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">伴侣关联</h1>
+          <p className="text-sm md:text-base text-muted-foreground">关联您的伴侣，一起记录美好时光</p>
         </div>
 
         {partner ? (
@@ -363,6 +364,8 @@ const PartnerLink = () => {
           </>
         )}
       </div>
+      
+      <MobileNav userId={user?.id} />
     </div>
   );
 };
