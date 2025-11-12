@@ -41,8 +41,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (emailOrUsername: string, password: string) => {
     try {
+      // 如果不包含@，说明是用户名，转换为内部邮箱格式
+      const email = emailOrUsername.includes('@') 
+        ? emailOrUsername 
+        : `${emailOrUsername}@couples.app`;
+      
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -58,9 +63,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signUp = async (email: string, password: string, nickname?: string) => {
+  const signUp = async (username: string, password: string, nickname?: string) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
+      
+      // 使用用户名生成内部邮箱格式
+      const email = username.includes('@') ? username : `${username}@couples.app`;
       
       const { error } = await supabase.auth.signUp({
         email,
@@ -68,7 +76,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            nickname: nickname || email.split('@')[0]
+            nickname: nickname || username.split('@')[0],
+            username: username.split('@')[0]
           }
         }
       });
@@ -79,7 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       navigate('/');
     } catch (error: any) {
       if (error.message.includes('already registered')) {
-        toast.error('该邮箱已被注册');
+        toast.error('该用户名已被注册');
       } else {
         toast.error(error.message || '注册失败');
       }

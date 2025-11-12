@@ -4,18 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Heart, Mail, Lock, User } from 'lucide-react';
+import { Heart, Lock, User } from 'lucide-react';
 import { z } from 'zod';
 
 const authSchema = z.object({
-  email: z.string().email({ message: '请输入有效的邮箱地址' }),
+  username: z.string()
+    .min(3, { message: '用户名至少需要3个字符' })
+    .max(20, { message: '用户名最多20个字符' })
+    .regex(/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/, { message: '用户名只能包含字母、数字、下划线和中文' }),
   password: z.string().min(6, { message: '密码至少需要6个字符' }),
   nickname: z.string().optional(),
 });
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,15 +32,15 @@ export default function Auth() {
 
     try {
       const validatedData = authSchema.parse({
-        email,
+        username,
         password,
         nickname: isLogin ? undefined : nickname
       });
 
       if (isLogin) {
-        await signIn(validatedData.email, validatedData.password);
+        await signIn(validatedData.username, validatedData.password);
       } else {
-        await signUp(validatedData.email, validatedData.password, validatedData.nickname);
+        await signUp(validatedData.username, validatedData.password, validatedData.nickname);
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -70,18 +73,37 @@ export default function Auth() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="username" className="text-card-foreground flex items-center gap-2">
+              <User className="w-4 h-4" />
+              用户名
+            </Label>
+            <Input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              placeholder={isLogin ? "输入你的用户名" : "3-20个字符"}
+              className="bg-background border-border focus:ring-primary"
+            />
+            {errors.username && (
+              <p className="text-sm text-destructive">{errors.username}</p>
+            )}
+          </div>
+
           {!isLogin && (
             <div className="space-y-2">
               <Label htmlFor="nickname" className="text-card-foreground flex items-center gap-2">
                 <User className="w-4 h-4" />
-                昵称
+                昵称（可选）
               </Label>
               <Input
                 id="nickname"
                 type="text"
                 value={nickname}
                 onChange={(e) => setNickname(e.target.value)}
-                placeholder="输入你的昵称"
+                placeholder="输入你的昵称，默认使用用户名"
                 className="bg-background border-border focus:ring-primary"
               />
               {errors.nickname && (
@@ -89,25 +111,6 @@ export default function Auth() {
               )}
             </div>
           )}
-
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-card-foreground flex items-center gap-2">
-              <Mail className="w-4 h-4" />
-              邮箱
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="输入你的邮箱"
-              className="bg-background border-border focus:ring-primary"
-            />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email}</p>
-            )}
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="password" className="text-card-foreground flex items-center gap-2">
