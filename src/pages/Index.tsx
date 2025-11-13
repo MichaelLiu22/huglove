@@ -67,19 +67,24 @@ const Index = () => {
 
   const handleDatesSet = async (met: Date, together: Date) => {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('relationships')
         .upsert({
           user_id: user?.id,
           met_date: met.toISOString().split('T')[0],
           together_date: together.toISOString().split('T')[0],
           relationship_status: 'active'
-        });
+        }, {
+          onConflict: 'user_id'
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
       setMetDate(met);
       setTogetherDate(together);
+      setRelationshipId(data.id);
       setShowSetup(false);
       toast.success('数据保存成功！');
     } catch (error: any) {
