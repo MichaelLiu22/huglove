@@ -11,14 +11,38 @@ serve(async (req) => {
   }
 
   try {
-    const { latitude, longitude, date } = await req.json();
+    const { latitude, longitude, date, address } = await req.json();
 
-    if (!latitude || !longitude || !date) {
-      throw new Error('Missing required parameters: latitude, longitude, date');
+    let lat = latitude;
+    let lon = longitude;
+
+    // If address is provided, geocode it first
+    if (address && (!latitude || !longitude)) {
+      const geocodeResponse = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
+        {
+          headers: {
+            'User-Agent': 'CouplesApp/1.0'
+          }
+        }
+      );
+      
+      const geocodeData = await geocodeResponse.json();
+      
+      if (!geocodeData || geocodeData.length === 0) {
+        throw new Error('Address not found. Please check the address and try again.');
+      }
+
+      lat = parseFloat(geocodeData[0].lat);
+      lon = parseFloat(geocodeData[0].lon);
+    }
+
+    if (!lat || !lon || !date) {
+      throw new Error('Missing required parameters: latitude/longitude/address and date are required');
     }
 
     // Use Open-Meteo API (free, no API key required)
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=America/Los_Angeles&start_date=${date}&end_date=${date}`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=America/Los_Angeles&start_date=${date}&end_date=${date}`;
     
     const response = await fetch(url);
     const data = await response.json();
