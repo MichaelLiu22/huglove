@@ -33,6 +33,9 @@ interface Activity {
   temperature?: string;
   recommended_dishes?: string;
   order_index: number;
+  activity_photos?: string[];
+  activity_notes?: string;
+  activity_rating?: number;
 }
 
 interface DatePlan {
@@ -557,37 +560,33 @@ const WeekendPlans = () => {
                                 <span className="text-yellow-500">
                                   {"⭐".repeat(a.activity_rating)}
                                 </span>
-                                <span className="text-muted-foreground">
-                                  {a.activity_rating}/10
-                                </span>
                               </div>
                             )}
 
-                            {a.activity_report_image_url && (
-                              <div className="mt-2">
-                                <img 
-                                  src={a.activity_report_image_url} 
-                                  alt="Activity Report"
-                                  className="rounded-lg w-full max-w-xs object-cover cursor-pointer hover:opacity-80 transition-opacity"
-                                  onClick={() => {
-                                    setSelectedActivityForReport(a);
-                                    setActivityReportDialogOpen(true);
-                                  }}
-                                />
+                            {a.activity_notes && (
+                              <p className="text-sm mt-2 p-2 bg-muted/30 rounded">{a.activity_notes}</p>
+                            )}
+
+                            {a.activity_photos && a.activity_photos.length > 0 && (
+                              <div className="flex gap-2 mt-2 flex-wrap">
+                                {a.activity_photos.map((photo, idx) => (
+                                  <img key={idx} src={photo} alt={`照片 ${idx + 1}`} className="w-20 h-20 object-cover rounded" />
+                                ))}
                               </div>
                             )}
                           </div>
                           
                           <Button
                             size="sm"
-                            variant={a.activity_report_image_url ? "outline" : "default"}
+                            variant="outline"
                             onClick={() => {
-                              setSelectedActivityForReport(a);
-                              setActivityReportDialogOpen(true);
+                              setSelectedActivity(a);
+                              setActivityDetailsDialogOpen(true);
                             }}
                             className="w-full"
                           >
-                            📸 {a.activity_report_image_url ? "查看/重新生成报告" : "生成精美报告"}
+                            <Edit className="w-4 h-4 mr-2" />
+                            编辑活动详情
                           </Button>
                         </div>
                       ))}
@@ -680,11 +679,21 @@ const WeekendPlans = () => {
       </div>
       <MobileNav />
       
-      {selectedActivityForReport && (
-        <ActivityReportDialog
-          open={activityReportDialogOpen}
-          onOpenChange={setActivityReportDialogOpen}
-          activity={selectedActivityForReport}
+      {selectedActivity && (
+        <ActivityDetailsDialog
+          open={activityDetailsDialogOpen}
+          onOpenChange={setActivityDetailsDialogOpen}
+          activity={selectedActivity}
+          onSaved={fetchPlans}
+        />
+      )}
+
+      {selectedPlanForReport && (
+        <DatePlanReportDialog
+          open={datePlanReportDialogOpen}
+          onOpenChange={setDatePlanReportDialogOpen}
+          planId={selectedPlanForReport.id}
+          planDate={selectedPlanForReport.date}
           onReportGenerated={fetchPlans}
         />
       )}
