@@ -96,14 +96,13 @@ export const ActivityDetailsDialog = ({
       const allPhotoUrls = [...existingPhotos, ...newPhotoUrls];
 
       // Update activity in database
-      // @ts-ignore - Type will be fixed when types.ts regenerates
-      const { error } = await supabase
-        .from('date_plan_activities')
+      const { error } = await (supabase as any)
+        .from('date_plan_activities' as any)
         .update({
-          activity_photos: allPhotoUrls,
-          activity_notes: notes,
-          activity_rating: rating,
-        })
+          activity_photos: allPhotoUrls as any,
+          activity_notes: notes as any,
+          activity_rating: rating as any,
+        } as any)
         .eq('id', activity.id);
 
       if (error) throw error;
