@@ -230,7 +230,7 @@ const WeekendPlans = () => {
               temperature: a.temperature,
               recommended_dishes: a.recommended_dishes,
               order_index: i
-            })) as any
+            })) as any as any
         );
 
         toast.success('计划已更新');
@@ -243,7 +243,7 @@ const WeekendPlans = () => {
           is_completed: false
         }).select().single();
 
-        await supabase.from('date_plan_activities').insert(
+        await (supabase as any).from('date_plan_activities' as any).insert(
           activities.filter(a => a.location_name.trim()).map((a, i) => ({ 
             plan_id: planData!.id, 
             activity_time: a.activity_time,
@@ -255,7 +255,7 @@ const WeekendPlans = () => {
             temperature: a.temperature,
             recommended_dishes: a.recommended_dishes,
             order_index: i
-          }))
+          })) as any
         );
 
         toast.success('计划已添加');
@@ -475,8 +475,8 @@ const WeekendPlans = () => {
                     <Button
                       onClick={async () => {
                         try {
-                          const { error } = await supabase
-                            .from('date_plans')
+                          const { error } = await (supabase as any)
+                            .from('date_plans' as any)
                             .update({ is_completed: true })
                             .eq('id', p.id);
                           
@@ -598,8 +598,8 @@ const WeekendPlans = () => {
                       <Button
                         onClick={async () => {
                           try {
-                            const { error } = await supabase
-                              .from('date_plans')
+                            const { error } = await (supabase as any)
+                              .from('date_plans' as any)
                               .update({ is_completed: false })
                               .eq('id', p.id);
                             
@@ -625,8 +625,8 @@ const WeekendPlans = () => {
                             const nextWeekend = new Date();
                             nextWeekend.setDate(nextWeekend.getDate() + ((6 - nextWeekend.getDay() + 7) % 7 || 7));
                             
-                            const { data: newPlan, error: planError } = await supabase
-                              .from('date_plans')
+                            const { data: newPlan, error: planError } = await (supabase as any)
+                              .from('date_plans' as any)
                               .insert({
                                 relationship_id: relationshipId,
                                 plan_date: formatDateInLA(nextWeekend),
@@ -652,9 +652,9 @@ const WeekendPlans = () => {
                               order_index: index
                             }));
                             
-                            const { error: activitiesError } = await supabase
-                              .from('date_plan_activities')
-                              .insert(newActivities);
+                            const { error: activitiesError } = await (supabase as any)
+                              .from('date_plan_activities' as any)
+                              .insert(newActivities as any);
                             
                             if (activitiesError) throw activitiesError;
                             
@@ -676,7 +676,7 @@ const WeekendPlans = () => {
                   <div className="mt-4 pt-4 border-t border-border">
                     <Button
                       onClick={() => {
-                        setSelectedPlanForReport(p);
+                        setSelectedPlanForReport({ id: p.id, date: p.plan_date } as any);
                         setDatePlanReportDialogOpen(true);
                       }}
                       variant="default"
