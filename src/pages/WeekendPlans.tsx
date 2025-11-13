@@ -666,12 +666,27 @@ const WeekendPlans = () => {
                         className="flex-1"
                       >
                         <Plus className="mr-2 h-4 w-4" />
-                        基于此创建新计划
-                      </Button>
-                    </div>
-                    
-                  </CardContent>
-                </Card>
+                      基于此创建新计划
+                    </Button>
+                  </div>
+                  
+                  {/* 生成约会日记按钮 */}
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <Button
+                      onClick={() => {
+                        setSelectedPlanForReport(p);
+                        setDatePlanReportDialogOpen(true);
+                      }}
+                      variant="default"
+                      className="w-full"
+                      size="lg"
+                    >
+                      📖 生成约会日记
+                    </Button>
+                  </div>
+                  
+                </CardContent>
+              </Card>
               ))
             )}
           </TabsContent>

@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download, Share2 } from "lucide-react";
@@ -22,7 +20,6 @@ export const DatePlanReportDialog = ({
   planDate,
   onReportGenerated 
 }: DatePlanReportDialogProps) => {
-  const [template, setTemplate] = useState<string>("romantic");
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportImageUrl, setReportImageUrl] = useState<string>("");
   const { toast } = useToast();
@@ -37,7 +34,6 @@ export const DatePlanReportDialog = ({
         {
           body: {
             planId,
-            template,
           }
         }
       );
@@ -48,7 +44,7 @@ export const DatePlanReportDialog = ({
         setReportImageUrl(functionData.reportImageUrl);
         toast({
           title: "报告生成成功",
-          description: "您的约会日报告已生成",
+          description: "您的约会日记已生成",
         });
         onReportGenerated();
       }
@@ -68,7 +64,7 @@ export const DatePlanReportDialog = ({
     if (reportImageUrl) {
       const link = document.createElement('a');
       link.href = reportImageUrl;
-      link.download = `约会报告-${planDate}.png`;
+      link.download = `约会日记-${planDate}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -80,18 +76,18 @@ export const DatePlanReportDialog = ({
       try {
         const response = await fetch(reportImageUrl);
         const blob = await response.blob();
-        const file = new File([blob], `约会报告-${planDate}.png`, { type: 'image/png' });
+        const file = new File([blob], `约会日记-${planDate}.png`, { type: 'image/png' });
         
         await navigator.share({
-          title: '约会报告',
-          text: '看看我们的约会报告！',
+          title: '约会日记',
+          text: '看看我们的约会日记！',
           files: [file]
         });
       } catch (error) {
         console.error('Error sharing:', error);
         toast({
           title: "分享失败",
-          description: "无法分享报告",
+          description: "无法分享日记",
           variant: "destructive",
         });
       }
@@ -100,7 +96,7 @@ export const DatePlanReportDialog = ({
       navigator.clipboard.writeText(reportImageUrl);
       toast({
         title: "链接已复制",
-        description: "报告链接已复制到剪贴板",
+        description: "日记链接已复制到剪贴板",
       });
     }
   };
@@ -109,87 +105,80 @@ export const DatePlanReportDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>生成约会日报告 - {planDate}</DialogTitle>
+          <DialogTitle>生成约会日记 - {planDate}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
           {!reportImageUrl ? (
             <>
-              {/* Template Selection */}
-              <div className="space-y-2">
-                <Label>选择报告模板</Label>
-                <Select value={template} onValueChange={setTemplate} disabled={isGenerating}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="romantic">浪漫温馨</SelectItem>
-                    <SelectItem value="minimalist">简约清新</SelectItem>
-                    <SelectItem value="vintage">复古怀旧</SelectItem>
-                    <SelectItem value="modern">现代时尚</SelectItem>
-                    <SelectItem value="artistic">艺术创意</SelectItem>
-                    <SelectItem value="polaroid">拍立得风格</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Description */}
+              <div className="text-center space-y-2 py-8">
+                <p className="text-muted-foreground">
+                  AI将根据您的活动照片和笔记，生成一张精美的约会日记图片
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  包含活动时间线、地点信息，以及根据您的笔记扩展的温馨文字
+                </p>
               </div>
 
               {/* Generate Button */}
-              <Button
-                onClick={generateReport}
+              <Button 
+                onClick={generateReport} 
                 disabled={isGenerating}
                 className="w-full"
                 size="lg"
               >
                 {isGenerating ? (
                   <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    生成中...
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    AI生成中...
                   </>
                 ) : (
-                  "生成精美报告"
+                  <>📖 生成约会日记</>
                 )}
               </Button>
             </>
           ) : (
             <>
-              {/* Generated Report */}
+              {/* Display Generated Report */}
               <div className="space-y-4">
-                <img
-                  src={reportImageUrl}
-                  alt="约会报告"
+                <img 
+                  src={reportImageUrl} 
+                  alt="约会日记"
                   className="w-full rounded-lg shadow-lg"
                 />
-
+                
                 {/* Action Buttons */}
                 <div className="flex gap-2">
-                  <Button
+                  <Button 
                     onClick={downloadReport}
                     variant="outline"
                     className="flex-1"
                   >
-                    <Download className="w-4 h-4 mr-2" />
-                    下载报告
+                    <Download className="mr-2 h-4 w-4" />
+                    下载
                   </Button>
-                  <Button
+                  
+                  <Button 
                     onClick={shareReport}
                     variant="outline"
                     className="flex-1"
                   >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    分享报告
+                    <Share2 className="mr-2 h-4 w-4" />
+                    分享
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => {
+                      setReportImageUrl("");
+                      generateReport();
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    🔄 重新生成
                   </Button>
                 </div>
-
-                {/* Regenerate Button */}
-                <Button
-                  onClick={() => {
-                    setReportImageUrl("");
-                  }}
-                  variant="secondary"
-                  className="w-full"
-                >
-                  重新生成
-                </Button>
               </div>
             </>
           )}
@@ -197,4 +186,4 @@ export const DatePlanReportDialog = ({
       </DialogContent>
     </Dialog>
   );
-};
+}
