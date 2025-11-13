@@ -14,11 +14,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon, Edit, Loader2 } from "lucide-react";
+import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon, Edit, Loader2, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { MobileNav } from "@/components/MobileNav";
 import { formatDateInLA, parseDateInLA, toLATime } from "@/lib/timezoneUtils";
+import { DateReportDialog } from "@/components/DateReportDialog";
 
 interface Activity {
   id?: string;
@@ -48,6 +49,8 @@ const WeekendPlans = () => {
   const [historyPlans, setHistoryPlans] = useState<DatePlan[]>([]);
   const [relationshipId, setRelationshipId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [selectedPlanForReport, setSelectedPlanForReport] = useState<DatePlan | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<DatePlan | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>();
@@ -433,39 +436,136 @@ const WeekendPlans = () => {
                     </div>
                     {p.notes && <CardDescription>{p.notes}</CardDescription>}
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    {p.activities.map(a => (
-                      <div key={a.id} className="border-l-2 border-primary pl-4 space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">{a.activity_time}</span>
-                          <MapPin className="h-4 w-4" />
-                          <span className="font-medium">{a.location_name}</span>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      {p.activities.map(a => (
+                        <div key={a.id} className="border-l-2 border-primary pl-4 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">{a.activity_time}</span>
+                            <MapPin className="h-4 w-4" />
+                            <span className="font-medium">{a.location_name}</span>
+                          </div>
+                          {a.weather_condition && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Cloud className="h-4 w-4" />
+                              <span>{a.weather_condition} {a.temperature}</span>
+                            </div>
+                          )}
+                          {a.recommended_dishes && (
+                            <div className="mt-2 p-2 bg-muted/50 rounded text-xs whitespace-pre-wrap">
+                              <span className="font-medium">推荐菜品：</span>
+                              <div className="mt-1">{a.recommended_dishes}</div>
+                            </div>
+                          )}
+                          {a.description && <p className="text-sm text-muted-foreground">{a.description}</p>}
                         </div>
-                        {a.weather_condition && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Cloud className="h-4 w-4" />
-                            <span>{a.weather_condition} {a.temperature}</span>
-                          </div>
-                        )}
-                        {a.recommended_dishes && (
-                          <div className="mt-2 p-2 bg-muted/50 rounded text-xs whitespace-pre-wrap">
-                            <span className="font-medium">推荐菜品：</span>
-                            <div className="mt-1">{a.recommended_dishes}</div>
-                          </div>
-                        )}
-                        {a.description && <p className="text-sm text-muted-foreground">{a.description}</p>}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+                    
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const { error } = await supabase
+                            .from('date_plans')
+                            .update({ is_completed: true })
+                            .eq('id', p.id);
+                          
+                          if (error) throw error;
+                          
+                          toast.success('已标记为完成！');
+                          fetchPlans();
+                        } catch (error: any) {
+                          toast.error('标记失败：' + error.message);
+                        }
+                      }}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Check className="mr-2 h-4 w-4" />
+                      标记为完成
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
           </TabsContent>
           <TabsContent value="history" className="space-y-4 mt-6">
-            {historyPlans.length === 0 ? <Card className="p-8 text-center"><p className="text-muted-foreground">暂无历史</p></Card> : null}
+            {historyPlans.length === 0 ? (
+              <Card className="p-8 text-center">
+                <p className="text-muted-foreground">暂无历史记录</p>
+              </Card>
+            ) : (
+              historyPlans.map(p => (
+                <Card key={p.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <CalendarHeart className="h-5 w-5" />
+                        {format(parseDateInLA(p.plan_date), 'MM月dd日', { locale: zhCN })}
+                      </CardTitle>
+                      <Badge variant={p.is_completed ? "default" : "secondary"}>
+                        {p.is_completed ? "已完成" : "未完成"}
+                      </Badge>
+                    </div>
+                    {p.notes && <CardDescription>{p.notes}</CardDescription>}
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      {p.activities.map(a => (
+                        <div key={a.id} className="border-l-2 border-primary pl-4 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">{a.activity_time}</span>
+                            <MapPin className="h-4 w-4" />
+                            <span className="font-medium">{a.location_name}</span>
+                          </div>
+                          {a.weather_condition && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Cloud className="h-4 w-4" />
+                              <span>{a.weather_condition} {a.temperature}</span>
+                            </div>
+                          )}
+                          {a.recommended_dishes && (
+                            <div className="mt-2 p-2 bg-muted/50 rounded text-xs whitespace-pre-wrap">
+                              <span className="font-medium">推荐菜品：</span>
+                              <div className="mt-1">{a.recommended_dishes}</div>
+                            </div>
+                          )}
+                          {a.description && <p className="text-sm text-muted-foreground">{a.description}</p>}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {p.is_completed && (
+                      <Button
+                        onClick={() => {
+                          setSelectedPlanForReport(p);
+                          setReportDialogOpen(true);
+                        }}
+                        className="w-full bg-gradient-primary"
+                      >
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        生成精美报告
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </TabsContent>
         </Tabs>
       </div>
       <MobileNav />
+      
+      {selectedPlanForReport && relationshipId && (
+        <DateReportDialog
+          open={reportDialogOpen}
+          onOpenChange={setReportDialogOpen}
+          planId={selectedPlanForReport.id}
+          relationshipId={relationshipId}
+          planDate={selectedPlanForReport.plan_date}
+          planNotes={selectedPlanForReport.notes}
+          activities={selectedPlanForReport.activities}
+        />
+      )}
     </div>
   );
 };
