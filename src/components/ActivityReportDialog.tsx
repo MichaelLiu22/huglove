@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Star, X, Download, Share2 } from "lucide-react";
@@ -42,6 +43,7 @@ export const ActivityReportDialog = ({
   const [keywordInput, setKeywordInput] = useState("");
   const [keywords, setKeywords] = useState<string[]>(activity.activity_keywords || []);
   const [rating, setRating] = useState(activity.activity_rating || 0);
+  const [template, setTemplate] = useState<string>("romantic");
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportImageUrl, setReportImageUrl] = useState(activity.activity_report_image_url || "");
   const [isUploading, setIsUploading] = useState(false);
@@ -118,6 +120,7 @@ export const ActivityReportDialog = ({
             notes,
             keywords,
             rating,
+            template,
           }
         }
       );
@@ -231,6 +234,71 @@ export const ActivityReportDialog = ({
               {activity.location_address && (
                 <p className="text-sm text-muted-foreground">📍 {activity.location_address}</p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="template">🎨 报告风格模板</Label>
+              <Select value={template} onValueChange={setTemplate} disabled={isGenerating}>
+                <SelectTrigger id="template">
+                  <SelectValue placeholder="选择报告风格" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="romantic">
+                    <div className="flex items-center gap-2">
+                      <span>💝</span>
+                      <div>
+                        <div className="font-medium">浪漫风格</div>
+                        <div className="text-xs text-muted-foreground">粉色渐变、温馨浪漫、爱心装饰</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="minimalist">
+                    <div className="flex items-center gap-2">
+                      <span>⚪</span>
+                      <div>
+                        <div className="font-medium">简约风格</div>
+                        <div className="text-xs text-muted-foreground">黑白灰、线条简洁、留白充足</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="cute">
+                    <div className="flex items-center gap-2">
+                      <span>🌸</span>
+                      <div>
+                        <div className="font-medium">可爱风格</div>
+                        <div className="text-xs text-muted-foreground">明亮色彩、卡通元素、俏皮活泼</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="vintage">
+                    <div className="flex items-center gap-2">
+                      <span>📷</span>
+                      <div>
+                        <div className="font-medium">复古风格</div>
+                        <div className="text-xs text-muted-foreground">棕黄色调、胶片质感、怀旧氛围</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="elegant">
+                    <div className="flex items-center gap-2">
+                      <span>✨</span>
+                      <div>
+                        <div className="font-medium">优雅风格</div>
+                        <div className="text-xs text-muted-foreground">金色点缀、奢华精致、高级感</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="fresh">
+                    <div className="flex items-center gap-2">
+                      <span>🌿</span>
+                      <div>
+                        <div className="font-medium">清新风格</div>
+                        <div className="text-xs text-muted-foreground">绿色自然、清爽舒适、简单治愈</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

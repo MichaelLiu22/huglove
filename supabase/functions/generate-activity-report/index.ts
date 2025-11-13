@@ -18,10 +18,11 @@ serve(async (req) => {
       photos, 
       notes, 
       keywords,
-      rating 
+      rating,
+      template = 'romantic'
     } = await req.json();
 
-    console.log('Generating activity report:', { activityDetails, photoCount: photos?.length, keywords, rating });
+    console.log('Generating activity report:', { activityDetails, photoCount: photos?.length, keywords, rating, template });
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -34,8 +35,58 @@ serve(async (req) => {
       : '';
 
     const ratingStars = '⭐'.repeat(rating || 0);
+
+    // Template style definitions
+    const templateStyles: Record<string, string> = {
+      romantic: `
+配色方案：粉色到紫色的渐变背景（#FFE5EC 到 #E8B4F8），搭配金色点缀
+装饰元素：爱心、玫瑰花瓣、星星、蝴蝶结等浪漫图标
+字体风格：优雅的手写体标题，柔和的圆体正文
+排版特点：柔美的曲线边框，柔光效果，渐变叠加
+氛围感：温馨、浪漫、梦幻、甜蜜`,
+      
+      minimalist: `
+配色方案：黑白灰为主（#FFFFFF, #F5F5F5, #333333），局部使用一个重点色（如 #1A1A1A）
+装饰元素：极简线条、几何图形、大量留白
+字体风格：现代无衬线字体，字重清晰
+排版特点：网格布局，严谨的对齐，充足的留白空间
+氛围感：简洁、高级、现代、克制`,
+      
+      cute: `
+配色方案：明亮活泼的多彩配色（粉色 #FFB6C1、天蓝 #87CEEB、柠檬黄 #FFF44F、薄荷绿 #98FF98）
+装饰元素：卡通小动物、云朵、彩虹、小星星、糖果、贴纸效果
+字体风格：圆润可爱的字体，加粗醒目
+排版特点：俏皮的不规则排版，波浪边框，贴纸叠加效果
+氛围感：活泼、可爱、童趣、快乐`,
+      
+      vintage: `
+配色方案：复古棕黄色调（深棕 #8B4513、米黄 #F5DEB3、橙褐 #CD853F、暗红 #8B0000）
+装饰元素：胶片边框、老照片质感、复古花纹、邮票元素
+字体风格：复古衬线字体，做旧效果
+排版特点：胶片相机风格边框，纸张纹理，略微泛黄效果，噪点颗粒感
+氛围感：怀旧、复古、文艺、时光感`,
+      
+      elegant: `
+配色方案：低饱和度的高级配色（香槟金 #D4AF37、象牙白 #FFFFF0、深灰蓝 #4A5568、玫瑰金 #B76E79）
+装饰元素：金色线条、大理石纹理、优雅花卉、几何图案
+字体风格：衬线字体标题，优雅细腻的正文字体
+排版特点：对称式布局，精致的细线边框，金箔效果点缀
+氛围感：优雅、奢华、精致、高级`,
+      
+      fresh: `
+配色方案：清新自然色系（薄荷绿 #98FF98、天空蓝 #87CEEB、乳白色 #FFFAF0、浅灰 #E5E5E5）
+装饰元素：植物叶子、小清新插画、水彩渲染、自然元素
+字体风格：清爽的无衬线字体，轻盈感
+排版特点：透气的版式设计，水彩晕染背景，轻柔的阴影
+氛围感：清新、自然、治愈、舒适`
+    };
+
+    const selectedStyle = templateStyles[template] || templateStyles.romantic;
     
     const prompt = `创建一个精美的活动约会报告图片，专为社交媒体分享设计（Instagram/微信朋友圈）。
+
+🎨 设计风格模板 - ${template.toUpperCase()}：
+${selectedStyle}
 
 活动信息：
 - 活动地点：${activityDetails.location_name || '未知地点'}
@@ -55,25 +106,21 @@ ${keywordsText}
 
 📸 本次活动共有 ${photos?.length || 0} 张精彩照片
 
-设计要求：
-1. 温馨浪漫的配色方案（粉色、紫色、暖橙、浅蓝等暖色调渐变）
+设计要求（严格遵循所选模板风格）：
+1. **严格遵循上述模板的配色方案、装饰元素和排版风格**
 2. 突出活动的主题氛围和情感价值
 3. 醒目展示评分（用${ratingStars}星星图标）
 4. 深度融合关键词营造的情感氛围，让文字充满感染力
 5. 社交媒体标准尺寸（1080x1350像素，3:4比例或1080x1080正方形）
-6. 添加精致可爱的装饰元素：
-   - 爱心、星星、花朵等浪漫图标
-   - 精美边框或卡片式设计
-   - 柔和的阴影和光晕效果
-7. 排版要求：
-   - 标题醒目，使用优雅的中文字体
+6. 排版要求：
+   - 标题醒目，字体风格符合模板
    - 内容层次分明，重点信息突出
-   - 留白适当，不拥挤
-8. 整体风格：时尚、温馨、文艺、让人一眼就想点赞和分享
-9. 如果有推荐美食，可以用🍽️图标突出显示
-10. 融入约会的浪漫元素，让这份报告成为珍贵的回忆
+   - 留白符合模板设计理念
+7. 如果有推荐美食，可以用🍽️图标突出显示
+8. 确保整体视觉风格与选择的模板高度一致
+9. 避免混用其他风格的元素，保持风格纯粹性
 
-目标：创造一个让人眼前一亮、充满情感共鸣、值得珍藏和分享的精美视觉作品！`;
+目标：创造一个完全符合所选风格、让人眼前一亮、充满情感共鸣、值得珍藏和分享的精美视觉作品！`;
 
     console.log('Calling Lovable AI with prompt...');
 
