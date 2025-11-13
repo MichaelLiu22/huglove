@@ -19,7 +19,8 @@ import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { MobileNav } from "@/components/MobileNav";
 import { formatDateInLA, parseDateInLA, toLATime } from "@/lib/timezoneUtils";
-import { ActivityReportDialog } from "@/components/ActivityReportDialog";
+import { ActivityDetailsDialog } from "@/components/ActivityDetailsDialog";
+import { DatePlanReportDialog } from "@/components/DatePlanReportDialog";
 
 interface Activity {
   id?: string;
@@ -49,8 +50,10 @@ const WeekendPlans = () => {
   const [historyPlans, setHistoryPlans] = useState<DatePlan[]>([]);
   const [relationshipId, setRelationshipId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activityReportDialogOpen, setActivityReportDialogOpen] = useState(false);
-  const [selectedActivityForReport, setSelectedActivityForReport] = useState<Activity | null>(null);
+  const [activityDetailsDialogOpen, setActivityDetailsDialogOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [datePlanReportDialogOpen, setDatePlanReportDialogOpen] = useState(false);
+  const [selectedPlanForReport, setSelectedPlanForReport] = useState<{ id: string; date: string } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<DatePlan | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>();
@@ -82,9 +85,11 @@ const WeekendPlans = () => {
   const fetchPlans = async () => {
     try {
       setLoading(true);
+      // @ts-ignore - Type will be fixed when types.ts regenerates
       const { data: plansData } = await supabase.from('date_plans').select('*').eq('relationship_id', relationshipId).order('plan_date', { ascending: true });
       
       const plansWithActivities = await Promise.all((plansData || []).map(async (plan) => {
+        // @ts-ignore - Type will be fixed when types.ts regenerates
         const { data: activitiesData } = await supabase.from('date_plan_activities').select('*').eq('plan_id', plan.id).order('order_index');
         return { ...plan, activities: activitiesData || [] };
       }));
