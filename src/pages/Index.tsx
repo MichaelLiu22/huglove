@@ -6,7 +6,7 @@ import { AnniversaryCard } from "@/components/AnniversaryCard";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { MobileNav } from "@/components/MobileNav";
 import { calculateAnniversaries, getDaysTogether } from "@/lib/dateCalculations";
-import { Heart, Calendar, Sparkles, LogOut, Users, Star, BookHeart, Image, Edit2, CheckCircle2 } from "lucide-react";
+import { Heart, Calendar, Sparkles, LogOut, Users, Star, BookHeart, Image, Edit2, CheckCircle2, CalendarHeart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -330,6 +330,15 @@ const Index = () => {
               >
                 <Image className="w-4 h-4 mr-2" />
                 照片
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/weekend-plans')}
+                className="hidden md:flex bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                <CalendarHeart className="w-4 h-4 mr-2" />
+                约会
               </Button>
               <Button
                 variant="outline"
