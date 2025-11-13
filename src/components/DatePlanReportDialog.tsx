@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,8 +21,44 @@ export const DatePlanReportDialog = ({
   onReportGenerated 
 }: DatePlanReportDialogProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [reportImageUrl, setReportImageUrl] = useState<string>("");
   const { toast } = useToast();
+
+  // Load existing report when dialog opens
+  useEffect(() => {
+    if (open && planId) {
+      loadExistingReport();
+    }
+  }, [open, planId]);
+
+  const loadExistingReport = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await (supabase as any)
+        .from('date_reports' as any)
+        .select('report_image_url')
+        .eq('plan_id', planId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        // No existing report, that's ok
+        console.log('No existing report found');
+        setReportImageUrl("");
+        return;
+      }
+
+      if (data?.report_image_url) {
+        setReportImageUrl(data.report_image_url);
+      }
+    } catch (error) {
+      console.log('Error loading report:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const generateReport = async () => {
     try {
@@ -109,7 +145,12 @@ export const DatePlanReportDialog = ({
         </DialogHeader>
 
         <div className="space-y-6">
-          {!reportImageUrl ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+              <p className="text-muted-foreground mt-4">加载中...</p>
+            </div>
+          ) : !reportImageUrl ? (
             <>
               {/* Description */}
               <div className="text-center space-y-2 py-8">
