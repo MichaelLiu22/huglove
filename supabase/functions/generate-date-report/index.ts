@@ -135,10 +135,29 @@ ${plan.notes ? `整体感受：${plan.notes}` : ''}
     }
 
     const data = await response.json();
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    console.log("AI API response:", JSON.stringify(data, null, 2));
+    
+    // Try different response formats
+    let imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    
+    // Also try direct image_url format
+    if (!imageUrl) {
+      imageUrl = data.choices?.[0]?.message?.image_url;
+    }
+    
+    // Try content field
+    if (!imageUrl && data.choices?.[0]?.message?.content) {
+      const content = data.choices[0].message.content;
+      if (typeof content === 'string' && content.startsWith('data:image')) {
+        imageUrl = content;
+      }
+    }
+
+    console.log("Extracted imageUrl:", imageUrl ? imageUrl.substring(0, 100) + "..." : "null");
 
     if (!imageUrl) {
-      throw new Error("No image generated");
+      console.error("Full response structure:", JSON.stringify(data, null, 2));
+      throw new Error("No image generated - check logs for response structure");
     }
     
     // Save report to database
