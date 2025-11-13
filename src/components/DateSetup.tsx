@@ -16,7 +16,13 @@ export const DateSetup = ({ onDatesSet }: DateSetupProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (metDate && togetherDate) {
-      onDatesSet(new Date(metDate), new Date(togetherDate));
+      // 使用本地时区创建日期，避免 UTC 转换问题
+      const [metYear, metMonth, metDay] = metDate.split('-').map(Number);
+      const [togYear, togMonth, togDay] = togetherDate.split('-').map(Number);
+      onDatesSet(
+        new Date(metYear, metMonth - 1, metDay),
+        new Date(togYear, togMonth - 1, togDay)
+      );
     }
   };
 
