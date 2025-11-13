@@ -23,7 +23,7 @@ import { ActivityDetailsDialog } from "@/components/ActivityDetailsDialog";
 import { DatePlanReportDialog } from "@/components/DatePlanReportDialog";
 
 interface Activity {
-  id?: string;
+  id: string;
   activity_time: string;
   location_name: string;
   location_address?: string;
@@ -62,7 +62,7 @@ const WeekendPlans = () => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [notes, setNotes] = useState("");
   const [activities, setActivities] = useState<Activity[]>([
-    { activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }
+    { id: `temp-${Date.now()}`, activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }
   ]);
   const [fetchingWeather, setFetchingWeather] = useState<number | null>(null);
   const [fetchingRecommendations, setFetchingRecommendations] = useState<number | null>(null);
@@ -109,7 +109,7 @@ const WeekendPlans = () => {
   };
 
   const handleAddActivity = () => {
-    setActivities([...activities, { activity_time: "", location_name: "", location_address: "", location_type: "", description: "", order_index: activities.length }]);
+    setActivities([...activities, { id: `temp-${Date.now()}`, activity_time: "", location_name: "", location_address: "", location_type: "", description: "", order_index: activities.length }]);
   };
 
   const handleFetchWeather = async (index: number) => {
@@ -263,7 +263,7 @@ const WeekendPlans = () => {
       setEditingPlan(null);
       setSelectedDate(undefined);
       setNotes("");
-      setActivities([{ activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
+      setActivities([{ id: `temp-${Date.now()}`, activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
       fetchPlans();
     } catch (error) {
       toast.error(editingPlan ? '更新失败' : '添加失败');
@@ -290,7 +290,7 @@ const WeekendPlans = () => {
               setEditingPlan(null);
               setSelectedDate(undefined);
               setNotes("");
-              setActivities([{ activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
+              setActivities([{ id: `temp-${Date.now()}`, activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
             }
           }}>
             <DialogTrigger asChild>
