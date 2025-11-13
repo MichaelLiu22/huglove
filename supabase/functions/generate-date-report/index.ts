@@ -56,57 +56,18 @@ serve(async (req) => {
       .map((act: any, i: number) => `${i + 1}. ${act.location_name}: ${act.activity_notes}`)
       .join('\n');
     
-    // 构建约会报告的详细描述
-    const prompt = `创建一个精美的约会日记图片，用于社交媒体分享（Instagram/微信朋友圈）。
+    // Simplified, direct image generation prompt
+    const activitiesSummary = activities.map((act: any, i: number) => 
+      `${i + 1}. ${act.activity_time || ''} ${act.location_name}`
+    ).join(', ');
+    
+    const prompt = `Generate a romantic date diary scrapbook image with a 3:4 aspect ratio (portrait, suitable for Instagram).
 
-约会详情：
-- 日期：${plan.plan_date}
-- 计划备注：${plan.notes || '无'}
-- 活动数量：${activities.length}个
-- 照片数量：${allPhotos.length}张
+Date: ${plan.plan_date}
+Activities: ${activitiesSummary}
+${plan.notes ? `Notes: ${plan.notes}` : ''}
 
-活动列表：
-${activities.map((act: any, i: number) => `${i + 1}. ${act.activity_time || ''} - ${act.location_name}
-   地点：${act.location_address || act.location_name}
-   ${act.description ? `描述：${act.description}` : ''}
-   ${act.activity_notes ? `回忆：${act.activity_notes}` : ''}`).join('\n')}
-
-用户的回忆和感受：
-${activityNotes || '无特别记录'}
-
-${plan.notes ? `整体感受：${plan.notes}` : ''}
-
-设计要求：
-1. **根据照片数量调整布局**：
-   - 如果有${allPhotos.length}张照片，在图片中创意地展示或拼贴这些照片
-   - 照片应该是视觉焦点，占据主要版面
-   - 使用创意的照片排列方式（网格、拼贴、重叠、相框效果等）
-
-2. **文字和内容扩展**：
-   - 基于用户的笔记扩展生成一些温馨、浪漫的句子
-   - 例如："这一天，我们从${activities[0]?.location_name}开始，每一刻都值得珍藏"
-   - 添加一些关于爱情、陪伴、美好时光的诗意表达
-   - 保持简洁但充满情感
-
-3. **整体设计风格**：
-   - 使用温馨浪漫的色彩（粉色、淡紫色、温暖的橙色系）
-   - 背景使用柔和的渐变或可爱的插画元素
-   - 标题："我们的约会日记" 或 "Our Date Diary"
-   - 日期以醒目、艺术的方式展示
-   - 活动信息简洁呈现，不抢照片的风头
-
-4. **照片处理**：
-   - 为照片添加美观的边框或阴影效果
-   - 可以添加即拍即印的相机贴纸效果
-   - 照片周围可以添加手写风格的注释或日期标签
-
-5. **技术要求**：
-   - 图片比例 3:4（适合Instagram/朋友圈）
-   - 整体风格年轻、活泼、充满爱意
-   - 使用中英文混合，显得时尚精致
-   - 添加可爱的装饰元素（心形、星星、小图标等）
-
-让人看到这张图就能感受到满满的幸福和甜蜜！`;
+Style: Romantic pastel colors (pink, lavender, warm tones), soft gradient background, decorative hearts and stars, polaroid photo frames layout, hand-written style text, title "Our Date Diary" in elegant script font. The design should feel warm, loving, and shareable on social media.`;
 
     console.log("Generating date report image with prompt");
 
