@@ -510,26 +510,80 @@ const WeekendPlans = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
-                      {p.activities.map(a => (
-                        <div key={a.id} className="border-l-2 border-primary pl-4 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">{a.activity_time}</span>
-                            <MapPin className="h-4 w-4" />
-                            <span className="font-medium">{a.location_name}</span>
+                      {p.activities.map((a, index) => (
+                        <div key={a.id} className="border-l-2 border-primary/20 pl-4 space-y-3">
+                          <div className="flex items-start gap-2">
+                            <span className="text-sm font-medium text-primary">
+                              活动 {index + 1}
+                            </span>
+                            {a.activity_time && (
+                              <span className="text-sm text-muted-foreground">
+                                🕐 {a.activity_time}
+                              </span>
+                            )}
                           </div>
-                          {a.weather_condition && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Cloud className="h-4 w-4" />
-                              <span>{a.weather_condition} {a.temperature}</span>
-                            </div>
-                          )}
-                          {a.recommended_dishes && (
-                            <div className="mt-2 p-2 bg-muted/50 rounded text-xs whitespace-pre-wrap">
-                              <span className="font-medium">推荐菜品：</span>
-                              <div className="mt-1">{a.recommended_dishes}</div>
-                            </div>
-                          )}
-                          {a.description && <p className="text-sm text-muted-foreground">{a.description}</p>}
+                          <div className="space-y-1">
+                            <p className="font-medium">{a.location_name}</p>
+                            {a.location_address && (
+                              <p className="text-sm text-muted-foreground">
+                                📍 {a.location_address}
+                              </p>
+                            )}
+                            {a.description && (
+                              <p className="text-sm text-muted-foreground">
+                                {a.description}
+                              </p>
+                            )}
+                            {a.weather_condition && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Cloud className="h-4 w-4" />
+                                <span>{a.weather_condition} {a.temperature}</span>
+                              </div>
+                            )}
+                            {a.recommended_dishes && (
+                              <div className="mt-2 p-2 bg-muted/50 rounded text-xs whitespace-pre-wrap">
+                                <span className="font-medium">推荐：</span>
+                                <div className="mt-1">{a.recommended_dishes}</div>
+                              </div>
+                            )}
+                            
+                            {a.activity_rating && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="text-yellow-500">
+                                  {"⭐".repeat(a.activity_rating)}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {a.activity_rating}/10
+                                </span>
+                              </div>
+                            )}
+
+                            {a.activity_report_image_url && (
+                              <div className="mt-2">
+                                <img 
+                                  src={a.activity_report_image_url} 
+                                  alt="Activity Report"
+                                  className="rounded-lg w-full max-w-xs object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => {
+                                    setSelectedActivityForReport(a);
+                                    setActivityReportDialogOpen(true);
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                          
+                          <Button
+                            size="sm"
+                            variant={a.activity_report_image_url ? "outline" : "default"}
+                            onClick={() => {
+                              setSelectedActivityForReport(a);
+                              setActivityReportDialogOpen(true);
+                            }}
+                            className="w-full"
+                          >
+                            📸 {a.activity_report_image_url ? "查看/重新生成报告" : "生成精美报告"}
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -621,6 +675,14 @@ const WeekendPlans = () => {
       </div>
       <MobileNav />
       
+      {selectedActivityForReport && (
+        <ActivityReportDialog
+          open={activityReportDialogOpen}
+          onOpenChange={setActivityReportDialogOpen}
+          activity={selectedActivityForReport}
+          onReportGenerated={fetchPlans}
+        />
+      )}
     </div>
   );
 };
