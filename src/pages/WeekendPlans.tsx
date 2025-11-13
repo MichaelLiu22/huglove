@@ -88,19 +88,19 @@ const WeekendPlans = () => {
   const fetchPlans = async () => {
     try {
       setLoading(true);
-      // @ts-ignore - Type will be fixed when types.ts regenerates
-      const { data: plansData } = await supabase.from('date_plans').select('*').eq('relationship_id', relationshipId).order('plan_date', { ascending: true });
+      // @ts-ignore - temporary cast until types regenerate
+      const { data: plansData } = await (supabase as any).from('date_plans' as any).select('*').eq('relationship_id', relationshipId).order('plan_date', { ascending: true });
       
       const plansWithActivities = await Promise.all((plansData || []).map(async (plan) => {
         // @ts-ignore - Type will be fixed when types.ts regenerates
-        const { data: activitiesData } = await supabase.from('date_plan_activities').select('*').eq('plan_id', plan.id).order('order_index');
+        const { data: activitiesData } = await (supabase as any).from('date_plan_activities' as any).select('*').eq('plan_id', plan.id).order('order_index');
         return { ...plan, activities: activitiesData || [] };
       }));
 
       const today = toLATime(new Date());
       today.setHours(0, 0, 0, 0);
-      setUpcomingPlans(plansWithActivities.filter(p => !p.is_completed && parseDateInLA(p.plan_date) >= today));
-      setHistoryPlans(plansWithActivities.filter(p => p.is_completed || parseDateInLA(p.plan_date) < today));
+      setUpcomingPlans(plansWithActivities.filter(p => !p.is_completed && parseDateInLA(p.plan_date) >= today) as unknown as DatePlan[]);
+      setHistoryPlans(plansWithActivities.filter(p => p.is_completed || parseDateInLA(p.plan_date) < today) as unknown as DatePlan[]);
     } catch (error) {
       toast.error('获取计划失败');
     } finally {
@@ -207,34 +207,36 @@ const WeekendPlans = () => {
     try {
       if (editingPlan) {
         // 更新现有计划
-        await supabase.from('date_plans').update({
+        await (supabase as any).from('date_plans' as any).update({
           plan_date: formatDateInLA(selectedDate),
           notes
         }).eq('id', editingPlan.id);
 
         // 删除旧活动
-        await supabase.from('date_plan_activities').delete().eq('plan_id', editingPlan.id);
+        await (supabase as any).from('date_plan_activities' as any).delete().eq('plan_id', editingPlan.id);
 
         // 插入新活动
-        await supabase.from('date_plan_activities').insert(
-          activities.filter(a => a.location_name.trim()).map((a, i) => ({ 
-            plan_id: editingPlan.id, 
-            activity_time: a.activity_time,
-            location_name: a.location_name,
-            location_address: a.location_address,
-            location_type: a.location_type,
-            description: a.description,
-            weather_condition: a.weather_condition,
-            temperature: a.temperature,
-            recommended_dishes: a.recommended_dishes,
-            order_index: i
-          }))
+        await (supabase as any).from('date_plan_activities' as any).insert(
+          activities
+            .filter(a => a.location_name.trim())
+            .map((a, i) => ({ 
+              plan_id: editingPlan.id, 
+              activity_time: a.activity_time,
+              location_name: a.location_name,
+              location_address: a.location_address,
+              location_type: a.location_type,
+              description: a.description,
+              weather_condition: a.weather_condition,
+              temperature: a.temperature,
+              recommended_dishes: a.recommended_dishes,
+              order_index: i
+            })) as any
         );
 
         toast.success('计划已更新');
       } else {
         // 创建新计划
-        const { data: planData } = await supabase.from('date_plans').insert({
+        const { data: planData } = await (supabase as any).from('date_plans' as any).insert({
           relationship_id: relationshipId,
           plan_date: formatDateInLA(selectedDate),
           notes,
