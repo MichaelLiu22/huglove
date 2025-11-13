@@ -110,24 +110,9 @@ const WeekendPlans = () => {
 
     setFetchingWeather(index);
     try {
-      // 使用 Nominatim 地理编码服务
-      const geocodeResponse = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(activity.location_address)}&format=json&limit=1`
-      );
-      const geocodeData = await geocodeResponse.json();
-      
-      if (!geocodeData || geocodeData.length === 0) {
-        toast.error('未找到该地址，请重新输入');
-        return;
-      }
-
-      const { lat, lon } = geocodeData[0];
-      
-      // 获取天气
       const { data: weatherData, error: weatherError } = await supabase.functions.invoke('get-weather', {
         body: {
-          latitude: parseFloat(lat),
-          longitude: parseFloat(lon),
+          address: activity.location_address,
           date: formatDateInLA(selectedDate)
         }
       });
