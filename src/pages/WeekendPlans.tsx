@@ -14,7 +14,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon } from "lucide-react";
+import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon, Edit, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { MobileNav } from "@/components/MobileNav";
@@ -24,6 +24,7 @@ interface Activity {
   id?: string;
   activity_time: string;
   location_name: string;
+  location_address?: string;
   location_type: string;
   description: string;
   weather_condition?: string;
@@ -47,11 +48,13 @@ const WeekendPlans = () => {
   const [relationshipId, setRelationshipId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<DatePlan | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [notes, setNotes] = useState("");
   const [activities, setActivities] = useState<Activity[]>([
-    { activity_time: "09:00", location_name: "", location_type: "", description: "", order_index: 0 }
+    { activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }
   ]);
+  const [fetchingWeather, setFetchingWeather] = useState<number | null>(null);
 
   useEffect(() => {
     if (user) fetchRelationship();
@@ -93,35 +96,145 @@ const WeekendPlans = () => {
   };
 
   const handleAddActivity = () => {
-    setActivities([...activities, { activity_time: "", location_name: "", location_type: "", description: "", order_index: activities.length }]);
+    setActivities([...activities, { activity_time: "", location_name: "", location_address: "", location_type: "", description: "", order_index: activities.length }]);
   };
 
-  const handleAddPlan = async () => {
+  const handleFetchWeather = async (index: number) => {
+    const activity = activities[index];
+    if (!activity.location_address || !selectedDate) {
+      toast.error('请先填写地址和日期');
+      return;
+    }
+
+    setFetchingWeather(index);
+    try {
+      // 使用 Nominatim 地理编码服务
+      const geocodeResponse = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(activity.location_address)}&format=json&limit=1`
+      );
+      const geocodeData = await geocodeResponse.json();
+      
+      if (!geocodeData || geocodeData.length === 0) {
+        toast.error('未找到该地址，请重新输入');
+        return;
+      }
+
+      const { lat, lon } = geocodeData[0];
+      
+      // 获取天气
+      const { data: weatherData, error: weatherError } = await supabase.functions.invoke('get-weather', {
+        body: {
+          latitude: parseFloat(lat),
+          longitude: parseFloat(lon),
+          date: formatDateInLA(selectedDate)
+        }
+      });
+
+      if (weatherError) throw weatherError;
+
+      const newActivities = [...activities];
+      newActivities[index].weather_condition = weatherData.condition;
+      newActivities[index].temperature = weatherData.temperature;
+      setActivities(newActivities);
+      
+      toast.success('天气信息已更新');
+    } catch (error) {
+      console.error('Error fetching weather:', error);
+      toast.error('获取天气失败');
+    } finally {
+      setFetchingWeather(null);
+    }
+  };
+
+  const handleEditPlan = (plan: DatePlan) => {
+    setEditingPlan(plan);
+    setSelectedDate(parseDateInLA(plan.plan_date));
+    setNotes(plan.notes || "");
+    setActivities(plan.activities.map(a => ({
+      id: a.id,
+      activity_time: a.activity_time,
+      location_name: a.location_name,
+      location_address: a.location_address || "",
+      location_type: a.location_type,
+      description: a.description,
+      weather_condition: a.weather_condition,
+      temperature: a.temperature,
+      order_index: a.order_index
+    })));
+    setIsDialogOpen(true);
+  };
+
+  const handleRemoveActivity = (index: number) => {
+    setActivities(activities.filter((_, i) => i !== index));
+  };
+
+  const handleSavePlan = async () => {
     if (!selectedDate || activities.filter(a => a.location_name.trim()).length === 0) {
       toast.error('请填写必要信息');
       return;
     }
 
     try {
-      const { data: planData } = await supabase.from('date_plans').insert({
-        relationship_id: relationshipId,
-        plan_date: formatDateInLA(selectedDate),
-        notes,
-        is_completed: false
-      }).select().single();
+      if (editingPlan) {
+        // 更新现有计划
+        await supabase.from('date_plans').update({
+          plan_date: formatDateInLA(selectedDate),
+          notes
+        }).eq('id', editingPlan.id);
 
-      await supabase.from('date_plan_activities').insert(
-        activities.filter(a => a.location_name.trim()).map((a, i) => ({ plan_id: planData!.id, ...a, order_index: i }))
-      );
+        // 删除旧活动
+        await supabase.from('date_plan_activities').delete().eq('plan_id', editingPlan.id);
 
-      toast.success('计划已添加');
+        // 插入新活动
+        await supabase.from('date_plan_activities').insert(
+          activities.filter(a => a.location_name.trim()).map((a, i) => ({ 
+            plan_id: editingPlan.id, 
+            activity_time: a.activity_time,
+            location_name: a.location_name,
+            location_address: a.location_address,
+            location_type: a.location_type,
+            description: a.description,
+            weather_condition: a.weather_condition,
+            temperature: a.temperature,
+            order_index: i 
+          }))
+        );
+
+        toast.success('计划已更新');
+      } else {
+        // 创建新计划
+        const { data: planData } = await supabase.from('date_plans').insert({
+          relationship_id: relationshipId,
+          plan_date: formatDateInLA(selectedDate),
+          notes,
+          is_completed: false
+        }).select().single();
+
+        await supabase.from('date_plan_activities').insert(
+          activities.filter(a => a.location_name.trim()).map((a, i) => ({ 
+            plan_id: planData!.id, 
+            activity_time: a.activity_time,
+            location_name: a.location_name,
+            location_address: a.location_address,
+            location_type: a.location_type,
+            description: a.description,
+            weather_condition: a.weather_condition,
+            temperature: a.temperature,
+            order_index: i 
+          }))
+        );
+
+        toast.success('计划已添加');
+      }
+      
       setIsDialogOpen(false);
+      setEditingPlan(null);
       setSelectedDate(undefined);
       setNotes("");
-      setActivities([{ activity_time: "09:00", location_name: "", location_type: "", description: "", order_index: 0 }]);
+      setActivities([{ activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
       fetchPlans();
     } catch (error) {
-      toast.error('添加失败');
+      toast.error(editingPlan ? '更新失败' : '添加失败');
     }
   };
 
@@ -139,13 +252,21 @@ const WeekendPlans = () => {
             </div>
           </div>
           
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) {
+              setEditingPlan(null);
+              setSelectedDate(undefined);
+              setNotes("");
+              setActivities([{ activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-primary text-white"><Plus className="h-4 w-4 mr-2" />添加计划</Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>创建约会计划</DialogTitle>
+                <DialogTitle>{editingPlan ? '编辑约会计划' : '创建约会计划'}</DialogTitle>
                 <DialogDescription>计划一整天的美好约会</DialogDescription>
               </DialogHeader>
               
@@ -176,7 +297,14 @@ const WeekendPlans = () => {
 
                   {activities.map((activity, i) => (
                     <Card key={i} className="p-4 space-y-4">
-                      <div className="flex justify-between"><span className="font-medium text-sm">活动 {i + 1}</span></div>
+                      <div className="flex justify-between">
+                        <span className="font-medium text-sm">活动 {i + 1}</span>
+                        {activities.length > 1 && (
+                          <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveActivity(i)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div><Label>时间</Label><Input type="time" value={activity.activity_time} onChange={(e) => {
                           const newActs = [...activities];
@@ -187,18 +315,48 @@ const WeekendPlans = () => {
                           const newActs = [...activities];
                           newActs[i].location_type = v;
                           setActivities(newActs);
-                        }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>
+                        }}><SelectTrigger><SelectValue placeholder="选择类型" /></SelectTrigger><SelectContent>
                           <SelectItem value="餐厅">餐厅</SelectItem>
                           <SelectItem value="咖啡厅">咖啡厅</SelectItem>
                           <SelectItem value="公园">公园</SelectItem>
+                          <SelectItem value="电影院">电影院</SelectItem>
+                          <SelectItem value="商场">商场</SelectItem>
                           <SelectItem value="其他">其他</SelectItem>
                         </SelectContent></Select></div>
                       </div>
-                      <div><Label>地点 *</Label><Input value={activity.location_name} onChange={(e) => {
+                      <div><Label>地点名称 *</Label><Input value={activity.location_name} onChange={(e) => {
                         const newActs = [...activities];
                         newActs[i].location_name = e.target.value;
                         setActivities(newActs);
-                      }} /></div>
+                      }} placeholder="例如：星巴克" /></div>
+                      <div><Label>详细地址</Label>
+                        <div className="flex gap-2">
+                          <Input value={activity.location_address} onChange={(e) => {
+                            const newActs = [...activities];
+                            newActs[i].location_address = e.target.value;
+                            setActivities(newActs);
+                          }} placeholder="例如：洛杉矶市中心大街123号" />
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => handleFetchWeather(i)}
+                            disabled={fetchingWeather === i}
+                          >
+                            {fetchingWeather === i ? <Loader2 className="h-4 w-4 animate-spin" /> : <Cloud className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      {activity.weather_condition && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Cloud className="h-4 w-4" />
+                          <span>{activity.weather_condition} {activity.temperature}</span>
+                        </div>
+                      )}
+                      <div><Label>描述</Label><Textarea value={activity.description} onChange={(e) => {
+                        const newActs = [...activities];
+                        newActs[i].description = e.target.value;
+                        setActivities(newActs);
+                      }} placeholder="活动描述..." rows={2} /></div>
                     </Card>
                   ))}
                 </div>
@@ -206,7 +364,7 @@ const WeekendPlans = () => {
 
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>取消</Button>
-                <Button onClick={handleAddPlan}>创建</Button>
+                <Button onClick={handleSavePlan}>{editingPlan ? '保存' : '创建'}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -219,7 +377,40 @@ const WeekendPlans = () => {
           </TabsList>
           <TabsContent value="upcoming" className="space-y-4 mt-6">
             {upcomingPlans.length === 0 ? <Card className="p-8 text-center"><p className="text-muted-foreground">暂无计划</p></Card> :
-              upcomingPlans.map(p => <Card key={p.id}><CardHeader><CardTitle className="flex items-center gap-2"><CalendarHeart className="h-5 w-5" />{format(parseDateInLA(p.plan_date), 'MM月dd日', { locale: zhCN })}</CardTitle></CardHeader><CardContent>{p.activities.map(a => <div key={a.id} className="border-l-2 pl-4 mb-2"><div className="flex items-center gap-2"><MapPin className="h-4 w-4" /><span>{a.location_name}</span></div></div>)}</CardContent></Card>)}
+              upcomingPlans.map(p => (
+                <Card key={p.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <CalendarHeart className="h-5 w-5" />
+                        {format(parseDateInLA(p.plan_date), 'MM月dd日', { locale: zhCN })}
+                      </CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => handleEditPlan(p)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {p.notes && <CardDescription>{p.notes}</CardDescription>}
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {p.activities.map(a => (
+                      <div key={a.id} className="border-l-2 border-primary pl-4 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">{a.activity_time}</span>
+                          <MapPin className="h-4 w-4" />
+                          <span className="font-medium">{a.location_name}</span>
+                        </div>
+                        {a.weather_condition && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Cloud className="h-4 w-4" />
+                            <span>{a.weather_condition} {a.temperature}</span>
+                          </div>
+                        )}
+                        {a.description && <p className="text-sm text-muted-foreground">{a.description}</p>}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              ))}
           </TabsContent>
           <TabsContent value="history" className="space-y-4 mt-6">
             {historyPlans.length === 0 ? <Card className="p-8 text-center"><p className="text-muted-foreground">暂无历史</p></Card> : null}
