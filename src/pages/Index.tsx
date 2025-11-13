@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { formatDateInLA, parseDateInLA } from "@/lib/timezoneUtils";
 
 const Index = () => {
   const { user, signOut, loading: authLoading } = useAuth();
@@ -50,8 +51,8 @@ const Index = () => {
       if (error && error.code !== 'PGRST116') throw error;
 
       if (data) {
-        setMetDate(new Date(data.met_date));
-        setTogetherDate(new Date(data.together_date));
+        setMetDate(parseDateInLA(data.met_date));
+        setTogetherDate(parseDateInLA(data.together_date));
         setSpaceName(data.space_name || '我们的小空间');
         setPartnerId(data.partner_id);
         setRelationshipId(data.id);
@@ -67,20 +68,12 @@ const Index = () => {
 
   const handleDatesSet = async (met: Date, together: Date) => {
     try {
-      // 格式化为本地日期字符串，避免时区问题
-      const formatLocalDate = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      };
-
       const { data, error } = await supabase
         .from('relationships')
         .upsert({
           user_id: user?.id,
-          met_date: formatLocalDate(met),
-          together_date: formatLocalDate(together),
+          met_date: formatDateInLA(met),
+          together_date: formatDateInLA(together),
           relationship_status: 'active'
         }, {
           onConflict: 'user_id'
