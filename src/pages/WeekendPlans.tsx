@@ -29,6 +29,7 @@ interface Activity {
   description: string;
   weather_condition?: string;
   temperature?: string;
+  recommended_dishes?: string;
   order_index: number;
 }
 
@@ -55,6 +56,7 @@ const WeekendPlans = () => {
     { activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }
   ]);
   const [fetchingWeather, setFetchingWeather] = useState<number | null>(null);
+  const [fetchingRecommendations, setFetchingRecommendations] = useState<number | null>(null);
 
   useEffect(() => {
     if (user) fetchRelationship();
@@ -159,6 +161,7 @@ const WeekendPlans = () => {
       description: a.description,
       weather_condition: a.weather_condition,
       temperature: a.temperature,
+      recommended_dishes: a.recommended_dishes,
       order_index: a.order_index
     })));
     setIsDialogOpen(true);
@@ -166,6 +169,37 @@ const WeekendPlans = () => {
 
   const handleRemoveActivity = (index: number) => {
     setActivities(activities.filter((_, i) => i !== index));
+  };
+
+  const handleFetchRecommendations = async (index: number) => {
+    const activity = activities[index];
+    if (!activity.location_name || activity.location_type !== "餐厅") {
+      toast.error('请先填写餐厅名称');
+      return;
+    }
+
+    setFetchingRecommendations(index);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-restaurant-recommendations', {
+        body: {
+          restaurantName: activity.location_name,
+          locationAddress: activity.location_address
+        }
+      });
+
+      if (error) throw error;
+
+      const newActivities = [...activities];
+      newActivities[index].recommended_dishes = data.recommendations;
+      setActivities(newActivities);
+      
+      toast.success('推荐菜品已获取');
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+      toast.error('获取推荐菜品失败');
+    } finally {
+      setFetchingRecommendations(null);
+    }
   };
 
   const handleSavePlan = async () => {
@@ -196,7 +230,8 @@ const WeekendPlans = () => {
             description: a.description,
             weather_condition: a.weather_condition,
             temperature: a.temperature,
-            order_index: i 
+            recommended_dishes: a.recommended_dishes,
+            order_index: i
           }))
         );
 
@@ -220,7 +255,8 @@ const WeekendPlans = () => {
             description: a.description,
             weather_condition: a.weather_condition,
             temperature: a.temperature,
-            order_index: i 
+            recommended_dishes: a.recommended_dishes,
+            order_index: i
           }))
         );
 
@@ -352,6 +388,27 @@ const WeekendPlans = () => {
                           <span>{activity.weather_condition} {activity.temperature}</span>
                         </div>
                       )}
+                      {activity.location_type === "餐厅" && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <Label>推荐菜品</Label>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleFetchRecommendations(i)}
+                              disabled={fetchingRecommendations === i}
+                            >
+                              {fetchingRecommendations === i ? <Loader2 className="h-4 w-4 animate-spin" /> : "获取推荐"}
+                            </Button>
+                          </div>
+                          {activity.recommended_dishes && (
+                            <div className="p-3 bg-muted rounded-md text-sm whitespace-pre-wrap">
+                              {activity.recommended_dishes}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <div><Label>描述</Label><Textarea value={activity.description} onChange={(e) => {
                         const newActs = [...activities];
                         newActs[i].description = e.target.value;
@@ -403,6 +460,12 @@ const WeekendPlans = () => {
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Cloud className="h-4 w-4" />
                             <span>{a.weather_condition} {a.temperature}</span>
+                          </div>
+                        )}
+                        {a.recommended_dishes && (
+                          <div className="mt-2 p-2 bg-muted/50 rounded text-xs whitespace-pre-wrap">
+                            <span className="font-medium">推荐菜品：</span>
+                            <div className="mt-1">{a.recommended_dishes}</div>
                           </div>
                         )}
                         {a.description && <p className="text-sm text-muted-foreground">{a.description}</p>}
