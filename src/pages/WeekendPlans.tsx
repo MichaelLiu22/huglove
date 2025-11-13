@@ -14,12 +14,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon, Edit, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon, Edit, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { MobileNav } from "@/components/MobileNav";
 import { formatDateInLA, parseDateInLA, toLATime } from "@/lib/timezoneUtils";
-import { DateReportDialog } from "@/components/DateReportDialog";
+import { ActivityReportDialog } from "@/components/ActivityReportDialog";
 
 interface Activity {
   id?: string;
@@ -49,8 +49,8 @@ const WeekendPlans = () => {
   const [historyPlans, setHistoryPlans] = useState<DatePlan[]>([]);
   const [relationshipId, setRelationshipId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [reportDialogOpen, setReportDialogOpen] = useState(false);
-  const [selectedPlanForReport, setSelectedPlanForReport] = useState<DatePlan | null>(null);
+  const [activityReportDialogOpen, setActivityReportDialogOpen] = useState(false);
+  const [selectedActivityForReport, setSelectedActivityForReport] = useState<Activity | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<DatePlan | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>();
@@ -534,18 +534,6 @@ const WeekendPlans = () => {
                       ))}
                     </div>
                     
-                    {p.is_completed && (
-                      <Button
-                        onClick={() => {
-                          setSelectedPlanForReport(p);
-                          setReportDialogOpen(true);
-                        }}
-                        className="w-full bg-gradient-primary"
-                      >
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        生成精美报告
-                      </Button>
-                    )}
                   </CardContent>
                 </Card>
               ))
@@ -555,17 +543,6 @@ const WeekendPlans = () => {
       </div>
       <MobileNav />
       
-      {selectedPlanForReport && relationshipId && (
-        <DateReportDialog
-          open={reportDialogOpen}
-          onOpenChange={setReportDialogOpen}
-          planId={selectedPlanForReport.id}
-          relationshipId={relationshipId}
-          planDate={selectedPlanForReport.plan_date}
-          planNotes={selectedPlanForReport.notes}
-          activities={selectedPlanForReport.activities}
-        />
-      )}
     </div>
   );
 };
