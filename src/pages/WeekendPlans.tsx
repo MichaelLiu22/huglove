@@ -534,6 +534,84 @@ const WeekendPlans = () => {
                       ))}
                     </div>
                     
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const { error } = await supabase
+                              .from('date_plans')
+                              .update({ is_completed: false })
+                              .eq('id', p.id);
+                            
+                            if (error) throw error;
+                            
+                            toast.success('已标记为未完成，移回到即将到来！');
+                            fetchPlans();
+                          } catch (error: any) {
+                            toast.error('操作失败：' + error.message);
+                          }
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        标记为未完成
+                      </Button>
+                      
+                      <Button
+                        onClick={async () => {
+                          try {
+                            // Create new plan with future date
+                            const nextWeekend = new Date();
+                            nextWeekend.setDate(nextWeekend.getDate() + ((6 - nextWeekend.getDay() + 7) % 7 || 7));
+                            
+                            const { data: newPlan, error: planError } = await supabase
+                              .from('date_plans')
+                              .insert({
+                                relationship_id: relationshipId,
+                                plan_date: formatDateInLA(nextWeekend),
+                                notes: p.notes,
+                                is_completed: false
+                              })
+                              .select()
+                              .single();
+                            
+                            if (planError) throw planError;
+                            
+                            // Copy activities
+                            const newActivities = p.activities.map((a: Activity, index: number) => ({
+                              plan_id: newPlan.id,
+                              activity_time: a.activity_time,
+                              location_name: a.location_name,
+                              location_address: a.location_address,
+                              location_type: a.location_type,
+                              description: a.description,
+                              weather_condition: a.weather_condition,
+                              temperature: a.temperature,
+                              recommended_dishes: a.recommended_dishes,
+                              order_index: index
+                            }));
+                            
+                            const { error: activitiesError } = await supabase
+                              .from('date_plan_activities')
+                              .insert(newActivities);
+                            
+                            if (activitiesError) throw activitiesError;
+                            
+                            toast.success('已基于历史计划创建新计划！');
+                            fetchPlans();
+                          } catch (error: any) {
+                            toast.error('创建失败：' + error.message);
+                          }
+                        }}
+                        variant="default"
+                        className="flex-1"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        基于此创建新计划
+                      </Button>
+                    </div>
+                    
                   </CardContent>
                 </Card>
               ))
