@@ -66,7 +66,7 @@ export const ActivityDetailsDialog = ({
       const fileName = `${activity.id}-${Date.now()}-${Math.random()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
-        .from('date-reports')
+        .from('couple-photos')
         .upload(fileName, photo);
 
       if (uploadError) {
@@ -74,7 +74,7 @@ export const ActivityDetailsDialog = ({
       }
 
       const { data: { publicUrl } } = supabase.storage
-        .from('date-reports')
+        .from('couple-photos')
         .getPublicUrl(fileName);
 
       photoUrls.push(publicUrl);
