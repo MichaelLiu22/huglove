@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Heart, Sparkles } from "lucide-react";
+import { parseDateInLA } from "@/lib/timezoneUtils";
 
 interface DateSetupProps {
   onDatesSet: (metDate: Date, togetherDate: Date) => void;
@@ -16,12 +17,10 @@ export const DateSetup = ({ onDatesSet }: DateSetupProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (metDate && togetherDate) {
-      // 使用本地时区创建日期，避免 UTC 转换问题
-      const [metYear, metMonth, metDay] = metDate.split('-').map(Number);
-      const [togYear, togMonth, togDay] = togetherDate.split('-').map(Number);
+      // 使用洛杉矶时区解析日期
       onDatesSet(
-        new Date(metYear, metMonth - 1, metDay),
-        new Date(togYear, togMonth - 1, togDay)
+        parseDateInLA(metDate),
+        parseDateInLA(togetherDate)
       );
     }
   };

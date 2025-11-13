@@ -18,6 +18,7 @@ import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Sun, CloudRain } 
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { MobileNav } from "@/components/MobileNav";
+import { formatDateInLA, parseDateInLA, toLATime } from "@/lib/timezoneUtils";
 
 interface DatePlan {
   id: string;
@@ -87,16 +88,18 @@ const WeekendPlans = () => {
 
       if (error) throw error;
 
-      const today = new Date();
+      const today = toLATime(new Date());
       today.setHours(0, 0, 0, 0);
 
-      const upcoming = data?.filter(plan => 
-        !plan.is_completed && new Date(plan.suggestion_date) >= today
-      ) || [];
+      const upcoming = data?.filter(plan => {
+        const planDate = parseDateInLA(plan.suggestion_date);
+        return !plan.is_completed && planDate >= today;
+      }) || [];
 
-      const history = data?.filter(plan => 
-        plan.is_completed || new Date(plan.suggestion_date) < today
-      ) || [];
+      const history = data?.filter(plan => {
+        const planDate = parseDateInLA(plan.suggestion_date);
+        return plan.is_completed || planDate < today;
+      }) || [];
 
       setUpcomingPlans(upcoming);
       setHistoryPlans(history);
@@ -115,22 +118,15 @@ const WeekendPlans = () => {
     }
 
     try {
-      const formatLocalDate = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      };
-
       const { error } = await supabase
         .from('date_suggestions')
         .insert({
           relationship_id: relationshipId,
-          suggestion_date: formatLocalDate(selectedDate),
+          suggestion_date: formatDateInLA(selectedDate),
           location_name: locationName,
           location_type: locationType,
           description: description,
-          weather_condition: weather,
+          weather_condition: weather || '未知',
           temperature: temperature,
           reason: reason,
           is_completed: false
@@ -200,7 +196,7 @@ const WeekendPlans = () => {
           <div className="space-y-1">
             <CardTitle className="text-lg flex items-center gap-2">
               <CalendarHeart className="h-5 w-5 text-primary" />
-              {format(new Date(plan.suggestion_date), 'yyyy年MM月dd日 EEEE', { locale: zhCN })}
+              {format(parseDateInLA(plan.suggestion_date), 'yyyy年MM月dd日 EEEE', { locale: zhCN })}
             </CardTitle>
             <CardDescription className="flex items-center gap-2 mt-2">
               <MapPin className="h-4 w-4" />
