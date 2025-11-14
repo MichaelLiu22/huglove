@@ -72,16 +72,16 @@ const WeekendPlans = () => {
   const [fetchingRecommendations, setFetchingRecommendations] = useState<number | null>(null);
   const activitiesEndRef = useRef<HTMLDivElement>(null);
   
-  // 为活动卡片定义不同的背景色
+  // 为活动卡片定义不同的毛玻璃背景色
   const activityColors = [
-    "bg-primary/10",
-    "bg-secondary/15",
-    "bg-accent/10",
-    "bg-blue-500/10",
-    "bg-purple-500/10",
-    "bg-pink-500/10",
-    "bg-green-500/10",
-    "bg-orange-500/10"
+    "bg-primary/5 backdrop-blur-sm border border-primary/20",
+    "bg-secondary/5 backdrop-blur-sm border border-secondary/20",
+    "bg-accent/5 backdrop-blur-sm border border-accent/20",
+    "bg-blue-500/5 backdrop-blur-sm border border-blue-500/20",
+    "bg-purple-500/5 backdrop-blur-sm border border-purple-500/20",
+    "bg-pink-500/5 backdrop-blur-sm border border-pink-500/20",
+    "bg-green-500/5 backdrop-blur-sm border border-green-500/20",
+    "bg-orange-500/5 backdrop-blur-sm border border-orange-500/20"
   ];
 
   useEffect(() => {
