@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon, Edit, Loader2, UtensilsCrossed, Coffee, Trees, Film, ShoppingBag, UserCircle, MoreHorizontal, Gift, BookHeart, Star } from "lucide-react";
+import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon, Edit, Loader2, UtensilsCrossed, Coffee, Trees, Film, ShoppingBag, UserCircle, MoreHorizontal, Gift, BookHeart, Star, Copy, Phone, Bot } from "lucide-react";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { MobileNav } from "@/components/MobileNav";
@@ -80,6 +80,16 @@ const WeekendPlans = () => {
   const [partnerProfile, setPartnerProfile] = useState<any>(null);
   const [relationship, setRelationship] = useState<any>(null);
   const activitiesEndRef = useRef<HTMLDivElement>(null);
+  
+  // 复制到剪贴板函数
+  const handleCopyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label}已复制到剪贴板`);
+    } catch (error) {
+      toast.error('复制失败');
+    }
+  };
   
   // 为活动卡片定义不同的毛玻璃背景色
   const activityColors = [
@@ -937,9 +947,19 @@ const WeekendPlans = () => {
                           <div className="space-y-1">
                             <p className="font-medium">{a.location_name}</p>
                             {a.location_address && (
-                              <p className="text-sm text-muted-foreground">
-                                📍 {a.location_address}
-                              </p>
+                              <div className="flex items-start gap-2 group">
+                                <p className="text-sm text-muted-foreground flex-1">
+                                  📍 {a.location_address}
+                                </p>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => handleCopyToClipboard(a.location_address!, '地址')}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
                             )}
                             {a.description && (
                               <p className="text-sm text-muted-foreground">
@@ -956,6 +976,39 @@ const WeekendPlans = () => {
                               <div className="mt-2 p-2 bg-muted/50 rounded text-xs whitespace-pre-wrap">
                                 <span className="font-medium">推荐：</span>
                                 <div className="mt-1">{a.recommended_dishes}</div>
+                              </div>
+                            )}
+                            
+                            {/* Agent信息 */}
+                            {(a.agent_notes || a.contact_name || a.contact_phone) && (
+                              <div className="mt-2 p-3 bg-primary/5 border border-primary/10 rounded-lg space-y-2">
+                                <div className="flex items-center gap-2 text-xs font-medium text-primary">
+                                  <Bot className="h-4 w-4" />
+                                  <span>Agent信息</span>
+                                </div>
+                                {a.contact_name && (
+                                  <div className="text-sm">
+                                    <span className="text-muted-foreground">联系人：</span>
+                                    <span className="font-medium">{a.contact_name}</span>
+                                  </div>
+                                )}
+                                {a.contact_phone && (
+                                  <div className="flex items-center gap-2 group">
+                                    <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                    <span className="text-sm flex-1">{a.contact_phone}</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={() => handleCopyToClipboard(a.contact_phone!, '电话')}
+                                    >
+                                      <Copy className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                                {a.agent_notes && (
+                                  <p className="text-xs text-muted-foreground whitespace-pre-wrap">{a.agent_notes}</p>
+                                )}
                               </div>
                             )}
                             
