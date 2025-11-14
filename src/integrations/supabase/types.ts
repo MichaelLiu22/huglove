@@ -144,6 +144,169 @@ export type Database = {
           },
         ]
       }
+      date_plan_activities: {
+        Row: {
+          activity_end_time: string | null
+          activity_keywords: string[] | null
+          activity_notes: string | null
+          activity_photos: string[] | null
+          activity_rating: number | null
+          activity_report_image_url: string | null
+          activity_time: string | null
+          agent_notes: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          description: string | null
+          estimated_cost: number | null
+          id: string
+          is_gift: boolean | null
+          location_address: string | null
+          location_name: string
+          location_type: string | null
+          order_index: number
+          paid_by: string | null
+          plan_id: string
+          recommended_dishes: string | null
+          report_generated_at: string | null
+          temperature: string | null
+          weather_condition: string | null
+        }
+        Insert: {
+          activity_end_time?: string | null
+          activity_keywords?: string[] | null
+          activity_notes?: string | null
+          activity_photos?: string[] | null
+          activity_rating?: number | null
+          activity_report_image_url?: string | null
+          activity_time?: string | null
+          agent_notes?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_cost?: number | null
+          id?: string
+          is_gift?: boolean | null
+          location_address?: string | null
+          location_name: string
+          location_type?: string | null
+          order_index?: number
+          paid_by?: string | null
+          plan_id: string
+          recommended_dishes?: string | null
+          report_generated_at?: string | null
+          temperature?: string | null
+          weather_condition?: string | null
+        }
+        Update: {
+          activity_end_time?: string | null
+          activity_keywords?: string[] | null
+          activity_notes?: string | null
+          activity_photos?: string[] | null
+          activity_rating?: number | null
+          activity_report_image_url?: string | null
+          activity_time?: string | null
+          agent_notes?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_cost?: number | null
+          id?: string
+          is_gift?: boolean | null
+          location_address?: string | null
+          location_name?: string
+          location_type?: string | null
+          order_index?: number
+          paid_by?: string | null
+          plan_id?: string
+          recommended_dishes?: string | null
+          report_generated_at?: string | null
+          temperature?: string | null
+          weather_condition?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "date_plan_activities_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "date_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      date_plans: {
+        Row: {
+          created_at: string
+          id: string
+          is_completed: boolean
+          notes: string | null
+          plan_date: string
+          relationship_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          notes?: string | null
+          plan_date: string
+          relationship_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_completed?: boolean
+          notes?: string | null
+          plan_date?: string
+          relationship_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      date_reports: {
+        Row: {
+          created_at: string
+          generated_at: string | null
+          id: string
+          notes: string | null
+          photos: string[] | null
+          plan_id: string
+          relationship_id: string
+          report_image_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          generated_at?: string | null
+          id?: string
+          notes?: string | null
+          photos?: string[] | null
+          plan_id: string
+          relationship_id: string
+          report_image_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          generated_at?: string | null
+          id?: string
+          notes?: string | null
+          photos?: string[] | null
+          plan_id?: string
+          relationship_id?: string
+          report_image_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "date_reports_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "date_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       date_suggestions: {
         Row: {
           created_at: string
@@ -346,33 +509,39 @@ export type Database = {
           id: string
           met_date: string
           partner_id: string | null
+          partner_split_percentage: number | null
           relationship_status: string | null
           space_name: string | null
           together_date: string
           updated_at: string
           user_id: string
+          user_split_percentage: number | null
         }
         Insert: {
           created_at?: string
           id?: string
           met_date: string
           partner_id?: string | null
+          partner_split_percentage?: number | null
           relationship_status?: string | null
           space_name?: string | null
           together_date: string
           updated_at?: string
           user_id: string
+          user_split_percentage?: number | null
         }
         Update: {
           created_at?: string
           id?: string
           met_date?: string
           partner_id?: string | null
+          partner_split_percentage?: number | null
           relationship_status?: string | null
           space_name?: string | null
           together_date?: string
           updated_at?: string
           user_id?: string
+          user_split_percentage?: number | null
         }
         Relationships: []
       }

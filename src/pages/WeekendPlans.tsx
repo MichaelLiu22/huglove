@@ -41,6 +41,8 @@ interface Activity {
   contact_phone?: string;
   agent_notes?: string;
   estimated_cost?: number;
+  is_gift?: boolean;
+  paid_by?: string;
 }
 
 interface DatePlan {
@@ -71,6 +73,10 @@ const WeekendPlans = () => {
   ]);
   const [fetchingWeather, setFetchingWeather] = useState<number | null>(null);
   const [fetchingRecommendations, setFetchingRecommendations] = useState<number | null>(null);
+  const [generatingDiary, setGeneratingDiary] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [partnerProfile, setPartnerProfile] = useState<any>(null);
+  const [relationship, setRelationship] = useState<any>(null);
   const activitiesEndRef = useRef<HTMLDivElement>(null);
   
   // 为活动卡片定义不同的毛玻璃背景色
@@ -273,7 +279,10 @@ const WeekendPlans = () => {
       weather_condition: a.weather_condition,
       temperature: a.temperature,
       recommended_dishes: a.recommended_dishes,
-      order_index: a.order_index
+      order_index: a.order_index,
+      estimated_cost: a.estimated_cost,
+      is_gift: a.is_gift,
+      paid_by: a.paid_by
     })));
     setIsDialogOpen(true);
   };
