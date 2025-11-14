@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DiaryCard } from "@/components/DiaryCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Calendar as CalendarIcon, Edit, Trash2, BookHeart } from "lucide-react";
+import { ArrowLeft, Plus, Calendar as CalendarIcon, Edit, Trash2, BookHeart, Upload, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
@@ -45,6 +45,8 @@ const Diary = () => {
   const [mood, setMood] = useState<string>("happy");
   const [isShared, setIsShared] = useState(false);
   const [diaryDate, setDiaryDate] = useState<Date>(new Date());
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -96,6 +98,7 @@ const Diary = () => {
     setMood("happy");
     setIsShared(false);
     setDiaryDate(new Date());
+    setPhotos([]);
     setCurrentDiary(null);
   };
 
@@ -111,11 +114,78 @@ const Diary = () => {
     setMood(diary.mood || "happy");
     setIsShared(diary.is_shared);
     setDiaryDate(new Date(diary.diary_date));
+    setPhotos(diary.photos || []);
     setMode('view');
   };
 
   const handleEdit = () => {
     setMode('edit');
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (!currentDiary && !relationship) {
+      toast.error('请先保存日记后再上传照片');
+      return;
+    }
+
+    setUploadingPhoto(true);
+
+    try {
+      const uploadedUrls: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${i}.${fileExt}`;
+        const diaryId = currentDiary?.id || 'temp';
+        const filePath = `${diaryId}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('diary-photos')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('diary-photos')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrl);
+      }
+
+      setPhotos(prev => [...prev, ...uploadedUrls]);
+      toast.success(`成功上传 ${uploadedUrls.length} 张照片`);
+    } catch (error: any) {
+      console.error('Error uploading photos:', error);
+      toast.error('照片上传失败');
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemovePhoto = async (photoUrl: string) => {
+    try {
+      // Extract file path from URL
+      const urlParts = photoUrl.split('/diary-photos/');
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1];
+        const { error } = await supabase.storage
+          .from('diary-photos')
+          .remove([filePath]);
+
+        if (error) throw error;
+      }
+
+      setPhotos(prev => prev.filter(p => p !== photoUrl));
+      toast.success('照片已删除');
+    } catch (error: any) {
+      console.error('Error removing photo:', error);
+      toast.error('删除照片失败');
+    }
   };
 
   const handleSave = async () => {
@@ -137,7 +207,8 @@ const Diary = () => {
         content: content.trim(),
         mood,
         is_shared: isShared,
-        diary_date: format(diaryDate, 'yyyy-MM-dd')
+        diary_date: format(diaryDate, 'yyyy-MM-dd'),
+        photos: photos
       };
 
       if (currentDiary) {
@@ -492,6 +563,60 @@ const Diary = () => {
                       />
                     </PopoverContent>
                   </Popover>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>照片</Label>
+                <div className="space-y-3">
+                  {photos.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {photos.map((photo, index) => (
+                        <div key={index} className="relative group aspect-square rounded-lg overflow-hidden">
+                          <img 
+                            src={photo} 
+                            alt={`照片 ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => handleRemovePhoto(photo)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div>
+                    <Input
+                      id="photo-upload"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handlePhotoUpload}
+                      disabled={uploadingPhoto}
+                      className="hidden"
+                    />
+                    <Label htmlFor="photo-upload">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={uploadingPhoto}
+                        onClick={() => document.getElementById('photo-upload')?.click()}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {uploadingPhoto ? '上传中...' : '添加照片'}
+                      </Button>
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      支持 JPG、PNG、WebP、GIF 格式，单个文件最大 5MB
+                    </p>
+                  </div>
                 </div>
               </div>
 
