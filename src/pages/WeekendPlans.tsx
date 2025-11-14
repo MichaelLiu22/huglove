@@ -13,14 +13,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon, Edit, Loader2, UtensilsCrossed, Coffee, Trees, Film, ShoppingBag, UserCircle, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon, Edit, Loader2, UtensilsCrossed, Coffee, Trees, Film, ShoppingBag, UserCircle, MoreHorizontal, Gift, BookHeart, Star } from "lucide-react";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { MobileNav } from "@/components/MobileNav";
 import { formatDateInLA, parseDateInLA, toLATime } from "@/lib/timezoneUtils";
 import { ActivityDetailsDialog } from "@/components/ActivityDetailsDialog";
 import { DatePlanReportDialog } from "@/components/DatePlanReportDialog";
+import { BillSplitSettings } from "@/components/BillSplitSettings";
 
 interface Activity {
   id: string;
@@ -137,7 +139,8 @@ const WeekendPlans = () => {
     const categories: { [key: string]: number } = {};
     
     activities.forEach(activity => {
-      if (activity.estimated_cost && activity.estimated_cost > 0) {
+      // 排除gift的活动
+      if (!activity.is_gift && activity.estimated_cost && activity.estimated_cost > 0) {
         const category = activity.location_type || "其他";
         categories[category] = (categories[category] || 0) + activity.estimated_cost;
       }
@@ -155,7 +158,8 @@ const WeekendPlans = () => {
     const categories: { [key: string]: number } = {};
     
     plan.activities.forEach(activity => {
-      if (activity.estimated_cost && activity.estimated_cost > 0) {
+      // 排除gift的活动
+      if (!activity.is_gift && activity.estimated_cost && activity.estimated_cost > 0) {
         const category = activity.location_type || "其他";
         categories[category] = (categories[category] || 0) + activity.estimated_cost;
       }
@@ -166,6 +170,59 @@ const WeekendPlans = () => {
       cost,
       icon: getActivityIcon(category)
     })).sort((a, b) => b.cost - a.cost);
+  };
+
+  // 计算账单分摊
+  const calculateBillSplit = (plan: DatePlan) => {
+    if (!relationship) return null;
+    
+    const totalCost = plan.activities
+      .filter(a => !a.is_gift)
+      .reduce((sum, a) => sum + (a.estimated_cost || 0), 0);
+    
+    const userSplit = relationship.user_split_percentage || 50;
+    const partnerSplit = relationship.partner_split_percentage || 50;
+    
+    const userShare = (totalCost * userSplit) / 100;
+    const partnerShare = (totalCost * partnerSplit) / 100;
+    
+    const userPaid = plan.activities
+      .filter(a => !a.is_gift && a.paid_by === user?.id)
+      .reduce((sum, a) => sum + (a.estimated_cost || 0), 0);
+    
+    const partnerPaid = plan.activities
+      .filter(a => !a.is_gift && a.paid_by === relationship.partner_id)
+      .reduce((sum, a) => sum + (a.estimated_cost || 0), 0);
+    
+    return {
+      totalCost,
+      userShare,
+      partnerShare,
+      userPaid,
+      partnerPaid,
+      userBalance: userPaid - userShare,
+      partnerBalance: partnerPaid - partnerShare
+    };
+  };
+
+  // 生成AI日记
+  const handleGenerateDiary = async (planId: string) => {
+    setGeneratingDiary(planId);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-diary-from-plan', {
+        body: { planId }
+      });
+
+      if (error) throw error;
+
+      toast.success('日记生成成功！');
+      navigate('/diary');
+    } catch (error: any) {
+      console.error('Error generating diary:', error);
+      toast.error(error.message || '生成日记失败');
+    } finally {
+      setGeneratingDiary(null);
+    }
   };
 
   useEffect(() => {
@@ -425,19 +482,28 @@ const WeekendPlans = () => {
             </div>
           </div>
           
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) {
-              setEditingPlan(null);
-              setSelectedDate(undefined);
-              setNotes("");
-              setActivities([{ id: `temp-${Date.now()}`, activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-primary text-white"><Plus className="h-4 w-4 mr-2" />添加计划</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center gap-2">
+            {relationship && relationshipId && (
+              <BillSplitSettings
+                relationshipId={relationshipId}
+                userSplit={relationship.user_split_percentage || 50}
+                partnerSplit={relationship.partner_split_percentage || 50}
+                onUpdate={fetchPlans}
+              />
+            )}
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) {
+                setEditingPlan(null);
+                setSelectedDate(undefined);
+                setNotes("");
+                setActivities([{ id: `temp-${Date.now()}`, activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
+              }
+            }}>
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-primary text-white"><Plus className="h-4 w-4 mr-2" />添加计划</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingPlan ? '编辑约会计划' : '创建约会计划'}</DialogTitle>
                 <DialogDescription>计划一整天的美好约会</DialogDescription>
@@ -634,6 +700,44 @@ const WeekendPlans = () => {
                         }} 
                         placeholder="例如：50.00" 
                       /></div>
+
+                      {/* Gift开关和支付人选择 */}
+                      <div className="flex items-center justify-between gap-4 p-3 bg-muted/30 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={activity.is_gift || false}
+                            onCheckedChange={(checked) => {
+                              const newActs = [...activities];
+                              newActs[i].is_gift = checked;
+                              if (checked) {
+                                newActs[i].paid_by = undefined;
+                              }
+                              setActivities(newActs);
+                            }}
+                          />
+                          <Label className="text-sm flex items-center gap-1">
+                            <Gift className="h-4 w-4" />
+                            这是请客（gift）
+                          </Label>
+                        </div>
+                        {!activity.is_gift && userProfile && partnerProfile && (
+                          <div className="flex-1">
+                            <Select value={activity.paid_by || ''} onValueChange={(v) => {
+                              const newActs = [...activities];
+                              newActs[i].paid_by = v;
+                              setActivities(newActs);
+                            }}>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="谁支付？" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={user?.id || ''}>{userProfile.nickname || '我'}</SelectItem>
+                                <SelectItem value={relationship?.partner_id || ''}>{partnerProfile.nickname || 'TA'}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
                     </Card>
                   ))}
                   
@@ -684,7 +788,8 @@ const WeekendPlans = () => {
                 <Button onClick={handleSavePlan}>{editingPlan ? '保存' : '创建'}</Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         <Tabs defaultValue="upcoming">
@@ -927,6 +1032,40 @@ const WeekendPlans = () => {
                       </div>
                     )}
                     
+                    {/* 账单分摊显示 */}
+                    {calculateBillSplit(p) && calculateBillSplit(p)!.totalCost > 0 && (
+                      <div className="pt-3 border-t space-y-2">
+                        <span className="text-xs font-medium text-muted-foreground">账单分摊</span>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span>{userProfile?.nickname || '我'} 应付:</span>
+                            <span className="font-medium">${calculateBillSplit(p)?.userShare.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{partnerProfile?.nickname || 'TA'} 应付:</span>
+                            <span className="font-medium">${calculateBillSplit(p)?.partnerShare.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between pt-1 border-t">
+                            <span>{userProfile?.nickname || '我'} 已付:</span>
+                            <span className="font-medium">${calculateBillSplit(p)?.userPaid.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>{partnerProfile?.nickname || 'TA'} 已付:</span>
+                            <span className="font-medium">${calculateBillSplit(p)?.partnerPaid.toFixed(2)}</span>
+                          </div>
+                          {calculateBillSplit(p)!.userBalance !== 0 && (
+                            <div className="flex justify-between pt-1 border-t font-medium">
+                              {calculateBillSplit(p)!.userBalance > 0 ? (
+                                <span className="text-green-600">{partnerProfile?.nickname || 'TA'} 欠 {userProfile?.nickname || '我'}: ${Math.abs(calculateBillSplit(p)!.userBalance).toFixed(2)}</span>
+                              ) : (
+                                <span className="text-red-600">{userProfile?.nickname || '我'} 欠 {partnerProfile?.nickname || 'TA'}: ${Math.abs(calculateBillSplit(p)!.userBalance).toFixed(2)}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="flex gap-2 mt-4">
                       <Button
                         onClick={async () => {
@@ -1005,18 +1144,28 @@ const WeekendPlans = () => {
                     </Button>
                   </div>
                   
-                  {/* 生成约会日记按钮 */}
-                  <div className="mt-4 pt-4 border-t border-border">
+                  {/* 生成约会日记和查看报告按钮 */}
+                  <div className="mt-4 pt-4 border-t border-border flex gap-2">
                     <Button
                       onClick={() => {
                         setSelectedPlanForReport({ id: p.id, date: p.plan_date } as any);
                         setDatePlanReportDialogOpen(true);
                       }}
-                      variant="default"
-                      className="w-full"
-                      size="lg"
+                      variant="outline"
+                      className="flex-1"
                     >
-                      📖 生成约会日记
+                      查看报告
+                    </Button>
+                    <Button
+                      onClick={() => handleGenerateDiary(p.id)}
+                      disabled={generatingDiary === p.id}
+                      className="flex-1"
+                    >
+                      {generatingDiary === p.id ? (
+                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" />生成中</>
+                      ) : (
+                        <><BookHeart className="h-4 w-4 mr-2" />生成日记</>
+                      )}
                     </Button>
                   </div>
                   
