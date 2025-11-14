@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,6 +70,7 @@ const WeekendPlans = () => {
   ]);
   const [fetchingWeather, setFetchingWeather] = useState<number | null>(null);
   const [fetchingRecommendations, setFetchingRecommendations] = useState<number | null>(null);
+  const activitiesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user) fetchRelationship();
@@ -114,6 +115,9 @@ const WeekendPlans = () => {
 
   const handleAddActivity = () => {
     setActivities([...activities, { id: `temp-${Date.now()}`, activity_time: "", location_name: "", location_address: "", location_type: "", description: "", order_index: activities.length }]);
+    setTimeout(() => {
+      activitiesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 100);
   };
 
   const handleFetchWeather = async (index: number) => {
@@ -345,7 +349,6 @@ const WeekendPlans = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label>活动安排 *</Label>
-                    <Button type="button" size="sm" variant="outline" onClick={handleAddActivity}><Plus className="h-4 w-4 mr-1" />添加活动</Button>
                   </div>
 
                   {activities.map((activity, i) => (
@@ -359,24 +362,30 @@ const WeekendPlans = () => {
                         )}
                       </div>
                       <div className="grid grid-cols-2 gap-4">
-                        <div><Label>时间</Label><Input type="time" value={activity.activity_time} onChange={(e) => {
+                        <div><Label>开始时间</Label><Input type="time" value={activity.activity_time} onChange={(e) => {
                           const newActs = [...activities];
                           newActs[i].activity_time = e.target.value;
                           setActivities(newActs);
                         }} /></div>
-                        <div><Label>类型</Label><Select value={activity.location_type} onValueChange={(v) => {
+                        <div><Label>结束时间（可选）</Label><Input type="time" value={activity.activity_end_time || ''} onChange={(e) => {
                           const newActs = [...activities];
-                          newActs[i].location_type = v;
+                          newActs[i].activity_end_time = e.target.value;
                           setActivities(newActs);
-                        }}><SelectTrigger><SelectValue placeholder="选择类型" /></SelectTrigger><SelectContent>
-                          <SelectItem value="餐厅">餐厅</SelectItem>
-                          <SelectItem value="咖啡厅">咖啡厅</SelectItem>
-                          <SelectItem value="公园">公园</SelectItem>
-                          <SelectItem value="电影院">电影院</SelectItem>
-                          <SelectItem value="商场">商场</SelectItem>
-                          <SelectItem value="其他">其他</SelectItem>
-                        </SelectContent></Select></div>
+                        }} /></div>
                       </div>
+                      <div><Label>类型</Label><Select value={activity.location_type} onValueChange={(v) => {
+                        const newActs = [...activities];
+                        newActs[i].location_type = v;
+                        setActivities(newActs);
+                      }}><SelectTrigger><SelectValue placeholder="选择类型" /></SelectTrigger><SelectContent>
+                        <SelectItem value="餐厅">餐厅</SelectItem>
+                        <SelectItem value="咖啡厅">咖啡厅</SelectItem>
+                        <SelectItem value="公园">公园</SelectItem>
+                        <SelectItem value="电影院">电影院</SelectItem>
+                        <SelectItem value="商场">商场</SelectItem>
+                        <SelectItem value="Agent">Agent</SelectItem>
+                        <SelectItem value="其他">其他</SelectItem>
+                      </SelectContent></Select></div>
                       <div><Label>地点名称 *</Label><Input value={activity.location_name} onChange={(e) => {
                         const newActs = [...activities];
                         newActs[i].location_name = e.target.value;
@@ -426,6 +435,49 @@ const WeekendPlans = () => {
                           )}
                         </div>
                       )}
+                      
+                      {activity.location_type === "Agent" && (
+                        <div className="space-y-3 border-t pt-3">
+                          <div>
+                            <Label>联系人名称</Label>
+                            <Input 
+                              value={activity.contact_name || ''} 
+                              onChange={(e) => {
+                                const newActs = [...activities];
+                                newActs[i].contact_name = e.target.value;
+                                setActivities(newActs);
+                              }} 
+                              placeholder="例如：张三" 
+                            />
+                          </div>
+                          <div>
+                            <Label>联系电话</Label>
+                            <Input 
+                              value={activity.contact_phone || ''} 
+                              onChange={(e) => {
+                                const newActs = [...activities];
+                                newActs[i].contact_phone = e.target.value;
+                                setActivities(newActs);
+                              }} 
+                              placeholder="例如：123-456-7890" 
+                            />
+                          </div>
+                          <div>
+                            <Label>Agent备注</Label>
+                            <Textarea 
+                              value={activity.agent_notes || ''} 
+                              onChange={(e) => {
+                                const newActs = [...activities];
+                                newActs[i].agent_notes = e.target.value;
+                                setActivities(newActs);
+                              }} 
+                              placeholder="Agent相关的备注信息..." 
+                              rows={2} 
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
                       <div><Label>描述</Label><Textarea value={activity.description} onChange={(e) => {
                         const newActs = [...activities];
                         newActs[i].description = e.target.value;
@@ -433,6 +485,16 @@ const WeekendPlans = () => {
                       }} placeholder="活动描述..." rows={2} /></div>
                     </Card>
                   ))}
+                  
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleAddActivity}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />添加活动
+                  </Button>
+                  <div ref={activitiesEndRef} />
                 </div>
               </div>
 
