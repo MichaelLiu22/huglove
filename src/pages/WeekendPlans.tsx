@@ -113,8 +113,25 @@ const WeekendPlans = () => {
     }
   };
 
+  const addOneHour = (time: string): string => {
+    if (!time) return "";
+    const [hours, minutes] = time.split(':').map(Number);
+    const newHours = (hours + 1) % 24;
+    return `${String(newHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  };
+
   const handleAddActivity = () => {
-    setActivities([...activities, { id: `temp-${Date.now()}`, activity_time: "", location_name: "", location_address: "", location_type: "", description: "", order_index: activities.length }]);
+    const defaultTime = "09:00";
+    setActivities([...activities, { 
+      id: `temp-${Date.now()}`, 
+      activity_time: defaultTime, 
+      activity_end_time: addOneHour(defaultTime),
+      location_name: "", 
+      location_address: "", 
+      location_type: "", 
+      description: "", 
+      order_index: activities.length 
+    }]);
     setTimeout(() => {
       activitiesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }, 100);
@@ -365,6 +382,10 @@ const WeekendPlans = () => {
                         <div><Label>开始时间</Label><Input type="time" value={activity.activity_time} onChange={(e) => {
                           const newActs = [...activities];
                           newActs[i].activity_time = e.target.value;
+                          // 如果结束时间为空，自动设置为开始时间+1小时
+                          if (!newActs[i].activity_end_time) {
+                            newActs[i].activity_end_time = addOneHour(e.target.value);
+                          }
                           setActivities(newActs);
                         }} /></div>
                         <div><Label>结束时间（可选）</Label><Input type="time" value={activity.activity_end_time || ''} onChange={(e) => {
