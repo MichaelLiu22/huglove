@@ -14,7 +14,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon, Edit, Loader2 } from "lucide-react";
+import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon, Edit, Loader2, UtensilsCrossed, Coffee, Trees, Film, ShoppingBag, UserCircle, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { MobileNav } from "@/components/MobileNav";
@@ -83,6 +83,29 @@ const WeekendPlans = () => {
     "bg-green-500/5 backdrop-blur-sm border border-green-500/20",
     "bg-orange-500/5 backdrop-blur-sm border border-orange-500/20"
   ];
+
+  // 根据活动类型返回对应的图标
+  const getActivityIcon = (type: string) => {
+    const iconProps = { className: "h-5 w-5" };
+    switch (type) {
+      case "餐厅":
+        return <UtensilsCrossed {...iconProps} />;
+      case "咖啡厅":
+        return <Coffee {...iconProps} />;
+      case "公园":
+        return <Trees {...iconProps} />;
+      case "电影院":
+        return <Film {...iconProps} />;
+      case "商场":
+        return <ShoppingBag {...iconProps} />;
+      case "Agent":
+        return <UserCircle {...iconProps} />;
+      case "其他":
+        return <MoreHorizontal {...iconProps} />;
+      default:
+        return <MoreHorizontal {...iconProps} />;
+    }
+  };
 
   useEffect(() => {
     if (user) fetchRelationship();
@@ -382,8 +405,15 @@ const WeekendPlans = () => {
 
                   {activities.map((activity, i) => (
                     <Card key={i} className={`p-4 space-y-4 transition-colors duration-300 ${activityColors[i % activityColors.length]}`}>
-                      <div className="flex justify-between">
-                        <span className="font-medium text-sm">活动 {i + 1}</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {activity.location_type && (
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background/50">
+                              {getActivityIcon(activity.location_type)}
+                            </div>
+                          )}
+                          <span className="font-medium text-sm">活动 {i + 1}</span>
+                        </div>
                         {activities.length > 1 && (
                           <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveActivity(i)}>
                             <Trash2 className="h-4 w-4" />
