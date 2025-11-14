@@ -125,6 +125,28 @@ const WeekendPlans = () => {
     }
   };
 
+  // 根据活动类型返回对应的边框和背景颜色
+  const getActivityColorClasses = (type: string) => {
+    switch (type) {
+      case "餐厅":
+        return "border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20";
+      case "咖啡厅":
+        return "border-l-amber-600 bg-amber-50/50 dark:bg-amber-950/20";
+      case "公园":
+        return "border-l-green-500 bg-green-50/50 dark:bg-green-950/20";
+      case "电影院":
+        return "border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20";
+      case "商场":
+        return "border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20";
+      case "Agent":
+        return "border-l-pink-500 bg-pink-50/50 dark:bg-pink-950/20";
+      case "其他":
+        return "border-l-border bg-muted/20";
+      default:
+        return "border-l-border bg-muted/20";
+    }
+  };
+
   // 检测活动时间冲突
   const checkTimeConflict = (currentIndex: number, startTime: string, endTime: string): boolean => {
     if (!startTime || !endTime) return false;
@@ -828,7 +850,7 @@ const WeekendPlans = () => {
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
                       {p.activities.map(a => (
-                        <div key={a.id} className="border-l-2 border-primary pl-4 space-y-2">
+                        <div key={a.id} className={`border-l-2 pl-4 py-2 rounded-r-lg space-y-2 ${getActivityColorClasses(a.location_type)}`}>
                           <div className="flex items-center gap-2">
                             {getActivityIcon(a.location_type)}
                             <span className="text-sm text-muted-foreground">{a.activity_time}</span>
@@ -975,9 +997,10 @@ const WeekendPlans = () => {
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
                       {p.activities.map((a, index) => (
-                        <div key={a.id} className="border-l-2 border-primary/20 pl-4 space-y-3">
+                        <div key={a.id} className={`border-l-2 pl-4 py-2 rounded-r-lg space-y-3 ${getActivityColorClasses(a.location_type)}`}>
                           <div className="flex items-start gap-2">
-                            <span className="text-sm font-medium text-primary">
+                            {getActivityIcon(a.location_type)}
+                            <span className="text-sm font-medium">
                               活动 {index + 1}
                             </span>
                             {a.activity_time && (
