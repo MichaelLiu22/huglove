@@ -71,6 +71,18 @@ const WeekendPlans = () => {
   const [fetchingWeather, setFetchingWeather] = useState<number | null>(null);
   const [fetchingRecommendations, setFetchingRecommendations] = useState<number | null>(null);
   const activitiesEndRef = useRef<HTMLDivElement>(null);
+  
+  // 为活动卡片定义不同的背景色
+  const activityColors = [
+    "bg-primary/10",
+    "bg-secondary/15",
+    "bg-accent/10",
+    "bg-blue-500/10",
+    "bg-purple-500/10",
+    "bg-pink-500/10",
+    "bg-green-500/10",
+    "bg-orange-500/10"
+  ];
 
   useEffect(() => {
     if (user) fetchRelationship();
@@ -369,7 +381,7 @@ const WeekendPlans = () => {
                   </div>
 
                   {activities.map((activity, i) => (
-                    <Card key={i} className="p-4 space-y-4">
+                    <Card key={i} className={`p-4 space-y-4 transition-colors duration-300 ${activityColors[i % activityColors.length]}`}>
                       <div className="flex justify-between">
                         <span className="font-medium text-sm">活动 {i + 1}</span>
                         {activities.length > 1 && (
