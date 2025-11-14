@@ -829,12 +829,51 @@ const WeekendPlans = () => {
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
                       {p.activities.map(a => (
-                        <div key={a.id} className="border-l-2 border-primary pl-4 space-y-1">
+                        <div key={a.id} className="border-l-2 border-primary pl-4 space-y-2">
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground">{a.activity_time}</span>
                             <MapPin className="h-4 w-4" />
                             <span className="font-medium">{a.location_name}</span>
                           </div>
+                          
+                          {/* 地址信息 */}
+                          {a.location_address && (
+                            <div className="flex items-start gap-2 group">
+                              <div className="text-sm text-muted-foreground flex-1">
+                                📍 {a.location_address}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => handleCopyToClipboard(a.location_address!, '地址')}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {/* 电话信息 */}
+                          {a.contact_phone && (
+                            <div className="flex items-center gap-2 group">
+                              <a 
+                                href={`tel:${a.contact_phone}`}
+                                className="flex items-center gap-2 text-sm text-primary hover:underline flex-1"
+                              >
+                                <Phone className="h-3 w-3" />
+                                <span>{a.contact_phone}</span>
+                              </a>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => handleCopyToClipboard(a.contact_phone!, '电话')}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                          
                           {a.weather_condition && (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Cloud className="h-4 w-4" />
