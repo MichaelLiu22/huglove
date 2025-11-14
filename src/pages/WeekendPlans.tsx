@@ -40,6 +40,7 @@ interface Activity {
   contact_name?: string;
   contact_phone?: string;
   agent_notes?: string;
+  estimated_cost?: number;
 }
 
 interface DatePlan {
@@ -546,10 +547,34 @@ const WeekendPlans = () => {
                         newActs[i].description = e.target.value;
                         setActivities(newActs);
                       }} placeholder="活动描述..." rows={2} /></div>
+                      <div><Label>预计费用（美元）</Label><Input 
+                        type="number" 
+                        min="0" 
+                        step="0.01"
+                        value={activity.estimated_cost || ''} 
+                        onChange={(e) => {
+                          const newActs = [...activities];
+                          newActs[i].estimated_cost = e.target.value ? parseFloat(e.target.value) : undefined;
+                          setActivities(newActs);
+                        }} 
+                        placeholder="例如：50.00" 
+                      /></div>
                     </Card>
                   ))}
                   
-                  <Button 
+                  {/* 总预算统计 */}
+                  {activities.length > 0 && (
+                    <Card className="p-4 bg-primary/5 border-primary/20">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">预计总费用</span>
+                        <span className="text-2xl font-bold text-primary">
+                          ${activities.reduce((sum, a) => sum + (a.estimated_cost || 0), 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </Card>
+                  )}
+                  
+                  <Button
                     type="button" 
                     variant="outline" 
                     onClick={handleAddActivity}
@@ -612,9 +637,24 @@ const WeekendPlans = () => {
                             </div>
                           )}
                           {a.description && <p className="text-sm text-muted-foreground">{a.description}</p>}
+                          {a.estimated_cost !== undefined && a.estimated_cost > 0 && (
+                            <p className="text-sm font-medium text-primary">${a.estimated_cost.toFixed(2)}</p>
+                          )}
                         </div>
                       ))}
                     </div>
+                    
+                    {/* 总预算显示 */}
+                    {p.activities.some(a => a.estimated_cost && a.estimated_cost > 0) && (
+                      <div className="pt-3 border-t">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-muted-foreground">预计总费用</span>
+                          <span className="text-lg font-bold text-primary">
+                            ${p.activities.reduce((sum, a) => sum + (a.estimated_cost || 0), 0).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     
                     <Button
                       onClick={async () => {
@@ -720,6 +760,10 @@ const WeekendPlans = () => {
                                 ))}
                               </div>
                             )}
+                            
+                            {a.estimated_cost !== undefined && a.estimated_cost > 0 && (
+                              <p className="text-sm font-medium text-primary mt-2">${a.estimated_cost.toFixed(2)}</p>
+                            )}
                           </div>
                           
                           <Button
@@ -737,6 +781,18 @@ const WeekendPlans = () => {
                         </div>
                       ))}
                     </div>
+                    
+                    {/* 总预算显示 */}
+                    {p.activities.some(a => a.estimated_cost && a.estimated_cost > 0) && (
+                      <div className="pt-3 border-t">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-muted-foreground">预计总费用</span>
+                          <span className="text-lg font-bold text-primary">
+                            ${p.activities.reduce((sum, a) => sum + (a.estimated_cost || 0), 0).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="flex gap-2 mt-4">
                       <Button
