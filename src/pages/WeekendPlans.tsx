@@ -25,6 +25,7 @@ import { DatePlanReportDialog } from "@/components/DatePlanReportDialog";
 interface Activity {
   id: string;
   activity_time: string;
+  activity_end_time?: string;
   location_name: string;
   location_address?: string;
   location_type: string;
@@ -36,6 +37,9 @@ interface Activity {
   activity_photos?: string[];
   activity_notes?: string;
   activity_rating?: number;
+  contact_name?: string;
+  contact_phone?: string;
+  agent_notes?: string;
 }
 
 interface DatePlan {
