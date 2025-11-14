@@ -97,7 +97,7 @@ const WeekendPlans = () => {
       
       const plansWithActivities = await Promise.all((plansData || []).map(async (plan) => {
         // @ts-ignore - Type will be fixed when types.ts regenerates
-        const { data: activitiesData } = await (supabase as any).from('date_plan_activities' as any).select('*').eq('plan_id', plan.id).order('order_index');
+        const { data: activitiesData } = await (supabase as any).from('date_plan_activities' as any).select('*').eq('plan_id', plan.id).order('activity_time', { ascending: true });
         return { ...plan, activities: activitiesData || [] };
       }));
 
@@ -209,6 +209,15 @@ const WeekendPlans = () => {
     }
 
     try {
+      // 按时间排序活动
+      const sortedActivities = [...activities]
+        .filter(a => a.location_name.trim())
+        .sort((a, b) => {
+          const timeA = a.activity_time || '00:00';
+          const timeB = b.activity_time || '00:00';
+          return timeA.localeCompare(timeB);
+        });
+
       if (editingPlan) {
         // 更新现有计划
         await (supabase as any).from('date_plans' as any).update({
@@ -221,20 +230,22 @@ const WeekendPlans = () => {
 
         // 插入新活动
         await (supabase as any).from('date_plan_activities' as any).insert(
-          activities
-            .filter(a => a.location_name.trim())
-            .map((a, i) => ({ 
-              plan_id: editingPlan.id, 
-              activity_time: a.activity_time,
-              location_name: a.location_name,
-              location_address: a.location_address,
-              location_type: a.location_type,
-              description: a.description,
-              weather_condition: a.weather_condition,
-              temperature: a.temperature,
-              recommended_dishes: a.recommended_dishes,
-              order_index: i
-            })) as any as any
+          sortedActivities.map((a, i) => ({ 
+            plan_id: editingPlan.id, 
+            activity_time: a.activity_time,
+            activity_end_time: a.activity_end_time,
+            location_name: a.location_name,
+            location_address: a.location_address,
+            location_type: a.location_type,
+            description: a.description,
+            weather_condition: a.weather_condition,
+            temperature: a.temperature,
+            recommended_dishes: a.recommended_dishes,
+            contact_name: a.contact_name,
+            contact_phone: a.contact_phone,
+            agent_notes: a.agent_notes,
+            order_index: i
+          })) as any as any
         );
 
         toast.success('计划已更新');
@@ -248,9 +259,10 @@ const WeekendPlans = () => {
         }).select().single();
 
         await (supabase as any).from('date_plan_activities' as any).insert(
-          activities.filter(a => a.location_name.trim()).map((a, i) => ({ 
+          sortedActivities.map((a, i) => ({ 
             plan_id: planData!.id, 
             activity_time: a.activity_time,
+            activity_end_time: a.activity_end_time,
             location_name: a.location_name,
             location_address: a.location_address,
             location_type: a.location_type,
@@ -258,6 +270,9 @@ const WeekendPlans = () => {
             weather_condition: a.weather_condition,
             temperature: a.temperature,
             recommended_dishes: a.recommended_dishes,
+            contact_name: a.contact_name,
+            contact_phone: a.contact_phone,
+            agent_notes: a.agent_notes,
             order_index: i
           })) as any
         );
