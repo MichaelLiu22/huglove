@@ -831,6 +831,7 @@ const WeekendPlans = () => {
                       {p.activities.map(a => (
                         <div key={a.id} className="border-l-2 border-primary pl-4 space-y-2">
                           <div className="flex items-center gap-2">
+                            {getActivityIcon(a.location_type)}
                             <span className="text-sm text-muted-foreground">{a.activity_time}</span>
                             <MapPin className="h-4 w-4" />
                             <span className="font-medium">{a.location_name}</span>
