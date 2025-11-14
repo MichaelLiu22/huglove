@@ -105,24 +105,23 @@ const WeekendPlans = () => {
 
   // 根据活动类型返回对应的图标
   const getActivityIcon = (type: string) => {
-    const iconProps = { className: "h-5 w-5" };
     switch (type) {
       case "餐厅":
-        return <UtensilsCrossed {...iconProps} />;
+        return <UtensilsCrossed className="h-5 w-5 text-orange-500" />;
       case "咖啡厅":
-        return <Coffee {...iconProps} />;
+        return <Coffee className="h-5 w-5 text-amber-600" />;
       case "公园":
-        return <Trees {...iconProps} />;
+        return <Trees className="h-5 w-5 text-green-500" />;
       case "电影院":
-        return <Film {...iconProps} />;
+        return <Film className="h-5 w-5 text-purple-500" />;
       case "商场":
-        return <ShoppingBag {...iconProps} />;
+        return <ShoppingBag className="h-5 w-5 text-blue-500" />;
       case "Agent":
-        return <UserCircle {...iconProps} />;
+        return <UserCircle className="h-5 w-5 text-pink-500" />;
       case "其他":
-        return <MoreHorizontal {...iconProps} />;
+        return <MoreHorizontal className="h-5 w-5 text-muted-foreground" />;
       default:
-        return <MoreHorizontal {...iconProps} />;
+        return <MoreHorizontal className="h-5 w-5 text-muted-foreground" />;
     }
   };
 
