@@ -108,6 +108,60 @@ const WeekendPlans = () => {
     }
   };
 
+  // 检测活动时间冲突
+  const checkTimeConflict = (currentIndex: number, startTime: string, endTime: string): boolean => {
+    if (!startTime || !endTime) return false;
+    
+    const currentStart = new Date(`2000-01-01T${startTime}`);
+    const currentEnd = new Date(`2000-01-01T${endTime}`);
+    
+    return activities.some((activity, index) => {
+      if (index === currentIndex || !activity.activity_time || !activity.activity_end_time) return false;
+      
+      const actStart = new Date(`2000-01-01T${activity.activity_time}`);
+      const actEnd = new Date(`2000-01-01T${activity.activity_end_time}`);
+      
+      // 检查时间是否重叠
+      return (currentStart < actEnd && currentEnd > actStart);
+    });
+  };
+
+  // 计算预算分类统计
+  const getBudgetByCategory = () => {
+    const categories: { [key: string]: number } = {};
+    
+    activities.forEach(activity => {
+      if (activity.estimated_cost && activity.estimated_cost > 0) {
+        const category = activity.location_type || "其他";
+        categories[category] = (categories[category] || 0) + activity.estimated_cost;
+      }
+    });
+    
+    return Object.entries(categories).map(([category, cost]) => ({
+      category,
+      cost,
+      icon: getActivityIcon(category)
+    })).sort((a, b) => b.cost - a.cost);
+  };
+
+  // 计算单个计划的预算分类统计
+  const getPlanBudgetByCategory = (plan: DatePlan) => {
+    const categories: { [key: string]: number } = {};
+    
+    plan.activities.forEach(activity => {
+      if (activity.estimated_cost && activity.estimated_cost > 0) {
+        const category = activity.location_type || "其他";
+        categories[category] = (categories[category] || 0) + activity.estimated_cost;
+      }
+    });
+    
+    return Object.entries(categories).map(([category, cost]) => ({
+      category,
+      cost,
+      icon: getActivityIcon(category)
+    })).sort((a, b) => b.cost - a.cost);
+  };
+
   useEffect(() => {
     if (user) fetchRelationship();
   }, [user]);
@@ -422,21 +476,33 @@ const WeekendPlans = () => {
                         )}
                       </div>
                       <div className="grid grid-cols-2 gap-4">
-                        <div><Label>开始时间</Label><Input type="time" value={activity.activity_time} onChange={(e) => {
-                          const newActs = [...activities];
-                          newActs[i].activity_time = e.target.value;
-                          // 如果结束时间为空，自动设置为开始时间+1小时
-                          if (!newActs[i].activity_end_time) {
-                            newActs[i].activity_end_time = addOneHour(e.target.value);
-                          }
-                          setActivities(newActs);
-                        }} /></div>
-                        <div><Label>结束时间（可选）</Label><Input type="time" value={activity.activity_end_time || ''} onChange={(e) => {
-                          const newActs = [...activities];
-                          newActs[i].activity_end_time = e.target.value;
-                          setActivities(newActs);
-                        }} /></div>
+                        <div>
+                          <Label>开始时间</Label>
+                          <Input type="time" value={activity.activity_time} onChange={(e) => {
+                            const newActs = [...activities];
+                            newActs[i].activity_time = e.target.value;
+                            // 如果结束时间为空，自动设置为开始时间+1小时
+                            if (!newActs[i].activity_end_time) {
+                              newActs[i].activity_end_time = addOneHour(e.target.value);
+                            }
+                            setActivities(newActs);
+                          }} />
+                        </div>
+                        <div>
+                          <Label>结束时间（可选）</Label>
+                          <Input type="time" value={activity.activity_end_time || ''} onChange={(e) => {
+                            const newActs = [...activities];
+                            newActs[i].activity_end_time = e.target.value;
+                            setActivities(newActs);
+                          }} />
+                        </div>
                       </div>
+                      {/* 时间冲突警告 */}
+                      {activity.activity_time && activity.activity_end_time && checkTimeConflict(i, activity.activity_time, activity.activity_end_time) && (
+                        <div className="flex items-center gap-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
+                          <span>⚠️ 此活动时间与其他活动冲突</span>
+                        </div>
+                      )}
                       <div><Label>类型</Label><Select value={activity.location_type} onValueChange={(v) => {
                         const newActs = [...activities];
                         newActs[i].location_type = v;
@@ -565,12 +631,30 @@ const WeekendPlans = () => {
                   {/* 总预算统计 */}
                   {activities.length > 0 && (
                     <Card className="p-4 bg-primary/5 border-primary/20">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mb-3">
                         <span className="font-medium">预计总费用</span>
                         <span className="text-2xl font-bold text-primary">
                           ${activities.reduce((sum, a) => sum + (a.estimated_cost || 0), 0).toFixed(2)}
                         </span>
                       </div>
+                      
+                      {/* 预算分类统计 */}
+                      {getBudgetByCategory().length > 0 && (
+                        <div className="space-y-2 pt-3 border-t border-primary/10">
+                          <span className="text-sm font-medium text-muted-foreground">费用分布</span>
+                          {getBudgetByCategory().map(({ category, cost, icon }) => (
+                            <div key={category} className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 flex items-center justify-center">
+                                  {icon}
+                                </div>
+                                <span>{category}</span>
+                              </div>
+                              <span className="font-medium">${cost.toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </Card>
                   )}
                   
@@ -646,13 +730,33 @@ const WeekendPlans = () => {
                     
                     {/* 总预算显示 */}
                     {p.activities.some(a => a.estimated_cost && a.estimated_cost > 0) && (
-                      <div className="pt-3 border-t">
+                      <div className="pt-3 border-t space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium text-muted-foreground">预计总费用</span>
                           <span className="text-lg font-bold text-primary">
                             ${p.activities.reduce((sum, a) => sum + (a.estimated_cost || 0), 0).toFixed(2)}
                           </span>
                         </div>
+                        
+                        {/* 预算分类统计 */}
+                        {getPlanBudgetByCategory(p).length > 0 && (
+                          <div className="space-y-2 pt-2 border-t border-border/50">
+                            <span className="text-xs font-medium text-muted-foreground">费用分布</span>
+                            <div className="grid grid-cols-2 gap-2">
+                              {getPlanBudgetByCategory(p).map(({ category, cost, icon }) => (
+                                <div key={category} className="flex items-center gap-2 text-xs bg-muted/30 p-2 rounded">
+                                  <div className="w-4 h-4 flex items-center justify-center">
+                                    {icon}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="font-medium">{category}</div>
+                                    <div className="text-primary">${cost.toFixed(2)}</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                     
@@ -784,13 +888,33 @@ const WeekendPlans = () => {
                     
                     {/* 总预算显示 */}
                     {p.activities.some(a => a.estimated_cost && a.estimated_cost > 0) && (
-                      <div className="pt-3 border-t">
+                      <div className="pt-3 border-t space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-muted-foreground">预计总费用</span>
+                          <span className="text-sm font-medium text-muted-foreground">实际总费用</span>
                           <span className="text-lg font-bold text-primary">
                             ${p.activities.reduce((sum, a) => sum + (a.estimated_cost || 0), 0).toFixed(2)}
                           </span>
                         </div>
+                        
+                        {/* 预算分类统计 */}
+                        {getPlanBudgetByCategory(p).length > 0 && (
+                          <div className="space-y-2 pt-2 border-t border-border/50">
+                            <span className="text-xs font-medium text-muted-foreground">费用分布</span>
+                            <div className="grid grid-cols-2 gap-2">
+                              {getPlanBudgetByCategory(p).map(({ category, cost, icon }) => (
+                                <div key={category} className="flex items-center gap-2 text-xs bg-muted/30 p-2 rounded">
+                                  <div className="w-4 h-4 flex items-center justify-center">
+                                    {icon}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="font-medium">{category}</div>
+                                    <div className="text-primary">${cost.toFixed(2)}</div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                     
