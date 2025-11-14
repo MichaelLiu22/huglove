@@ -18,16 +18,38 @@ serve(async (req) => {
 
     // If address is provided, geocode it first
     if (address && (!latitude || !longitude)) {
-      const geocodeResponse = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
-        {
-          headers: {
-            'User-Agent': 'CouplesApp/1.0'
-          }
-        }
-      );
+      // Try to geocode with progressively simplified addresses
+      const addressVariations = [
+        address, // Original full address
+        address.replace(/\s*(Unit|Suite|Apt|Apartment|#)\s*[\d\w-]+/gi, '').trim(), // Remove unit numbers
+        address.split(',').slice(0, -1).join(',').trim() // Remove last part (usually state+zip)
+      ].filter(addr => addr.length > 0);
+
+      let geocodeData = null;
       
-      const geocodeData = await geocodeResponse.json();
+      for (const addressVariation of addressVariations) {
+        try {
+          const geocodeResponse = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addressVariation)}&format=json&limit=1`,
+            {
+              headers: {
+                'User-Agent': 'CouplesApp/1.0'
+              }
+            }
+          );
+          
+          const data = await geocodeResponse.json();
+          
+          if (data && data.length > 0) {
+            geocodeData = data;
+            console.log(`Successfully geocoded with variation: ${addressVariation}`);
+            break;
+          }
+        } catch (error) {
+          console.log(`Failed to geocode with variation: ${addressVariation}`, error);
+          continue;
+        }
+      }
       
       if (!geocodeData || geocodeData.length === 0) {
         throw new Error('Address not found. Please check the address and try again.');
