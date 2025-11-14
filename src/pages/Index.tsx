@@ -5,6 +5,7 @@ import { DateSetup } from "@/components/DateSetup";
 import { AnniversaryCard } from "@/components/AnniversaryCard";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { MobileNav } from "@/components/MobileNav";
+import { BillSplitSettings } from "@/components/BillSplitSettings";
 import { calculateAnniversaries, getDaysTogether } from "@/lib/dateCalculations";
 import { Heart, Calendar, Sparkles, LogOut, Users, Star, BookHeart, Image, Edit2, CheckCircle2, CalendarHeart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ const Index = () => {
   const [relationshipId, setRelationshipId] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState("");
+  const [relationship, setRelationship] = useState<any>(null);
 
   useEffect(() => {
     if (!authLoading) {
@@ -56,6 +58,7 @@ const Index = () => {
         setSpaceName(data.space_name || '我们的小空间');
         setPartnerId(data.partner_id);
         setRelationshipId(data.id);
+        setRelationship(data);
         setShowSetup(false);
       }
     } catch (error: any) {
