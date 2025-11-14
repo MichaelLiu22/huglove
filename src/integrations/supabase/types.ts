@@ -23,6 +23,7 @@ export type Database = {
           id: string
           is_shared: boolean
           mood: string | null
+          photos: string[] | null
           relationship_id: string
           title: string
           updated_at: string
@@ -35,6 +36,7 @@ export type Database = {
           id?: string
           is_shared?: boolean
           mood?: string | null
+          photos?: string[] | null
           relationship_id: string
           title: string
           updated_at?: string
@@ -47,6 +49,7 @@ export type Database = {
           id?: string
           is_shared?: boolean
           mood?: string | null
+          photos?: string[] | null
           relationship_id?: string
           title?: string
           updated_at?: string

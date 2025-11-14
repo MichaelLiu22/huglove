@@ -65,27 +65,63 @@ serve(async (req) => {
       throw new Error('Unauthorized to access this plan');
     }
 
-    // Build context for AI
-    const activities = plan.activities || [];
+    // Sort activities by time (早到晚)
+    const activities = (plan.activities || []).sort((a: any, b: any) => {
+      const timeA = a.activity_time || '00:00';
+      const timeB = b.activity_time || '00:00';
+      return timeA.localeCompare(timeB);
+    });
+
+    // Collect all photos from activities
+    const allPhotos: string[] = [];
+    activities.forEach((a: any) => {
+      if (a.activity_photos && Array.isArray(a.activity_photos)) {
+        allPhotos.push(...a.activity_photos);
+      }
+    });
+
+    console.log('Collected photos:', allPhotos.length);
+
+    // Build detailed context for AI with time information
     const activitiesText = activities
-      .map((a: any, i: number) => 
-        `${i + 1}. ${a.location_name} (${a.location_type || '活动'}) - ${a.description || ''}`
-      )
-      .join('\n');
+      .map((a: any, i: number) => {
+        const time = a.activity_time ? `${a.activity_time}` : '';
+        const endTime = a.activity_end_time ? ` - ${a.activity_end_time}` : '';
+        const location = a.location_name || '未知地点';
+        const type = a.location_type || '活动';
+        const description = a.description || '';
+        const notes = a.activity_notes || '';
+        const rating = a.activity_rating ? `⭐评分: ${a.activity_rating}/5` : '';
+        
+        let activityDesc = `${i + 1}. 时间: ${time}${endTime}\n   地点: ${location} (${type})`;
+        if (description) activityDesc += `\n   描述: ${description}`;
+        if (notes) activityDesc += `\n   笔记: ${notes}`;
+        if (rating) activityDesc += `\n   ${rating}`;
+        
+        return activityDesc;
+      })
+      .join('\n\n');
 
     const diaryPrompt = `请根据以下约会计划生成一篇温馨浪漫的约会日记：
 
 日期：${plan.plan_date}
-活动列表：
+${plan.notes ? `约会主题: ${plan.notes}` : ''}
+
+活动安排（按时间顺序）：
 ${activitiesText}
 
 要求：
-- 以第一人称视角叙述
-- 语气温馨浪漫
-- 描述活动的美好瞬间和感受
-- 字数在300-500字
+- 以第一人称视角叙述，像是在写给自己或对方的日记
+- 严格按照时间顺序描述，从早到晚的活动流程
+- 语气温馨浪漫，充满感情
+- 描述活动的美好瞬间、感受和心情
+- 如果有用户的笔记内容，要融入到描述中，扩展成更生动的叙述
+- 如果有评分，可以自然地表达对活动的喜爱程度
+- 字数在400-600字
 - 用中文书写
-- 不要使用markdown格式`;
+- 不要使用markdown格式
+- 不要写标题，直接开始正文
+- 要让读者感受到这一天的时间流逝和情感变化`;
 
     // Generate diary text using Lovable AI
     console.log('Generating diary text...');
@@ -98,7 +134,10 @@ ${activitiesText}
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
         messages: [
-          { role: 'system', content: '你是一个擅长写浪漫日记的作家，善于捕捉生活中的美好瞬间。' },
+          { 
+            role: 'system', 
+            content: '你是一个擅长写浪漫日记的作家，善于捕捉生活中的美好瞬间，按照时间顺序细腻地描述一天的经历。你的文字温暖、真挚，能让人感受到时间的流动和情感的变化。' 
+          },
           { role: 'user', content: diaryPrompt }
         ],
       }),
@@ -167,10 +206,11 @@ ${activitiesText}
       .from('couple-photos')
       .getPublicUrl(imagePath);
 
-    // Generate diary title
-    const title = `${plan.plan_date} 约会日记`;
+    // Generate diary title based on activities
+    const mainActivities = activities.slice(0, 2).map((a: any) => a.location_type || a.location_name).join('与');
+    const title = `${plan.plan_date} ${mainActivities}之约`;
 
-    // Save diary to database
+    // Save diary to database with photos
     console.log('Saving diary to database...');
     const { data: diary, error: diaryError } = await supabase
       .from('couple_diaries')
@@ -182,7 +222,7 @@ ${activitiesText}
         diary_date: plan.plan_date,
         is_shared: true,
         mood: 'happy',
-        // Store image URL in content or create a separate field if needed
+        photos: allPhotos // Include user uploaded photos
       })
       .select()
       .single();

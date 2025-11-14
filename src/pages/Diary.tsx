@@ -349,30 +349,68 @@ const Diary = () => {
                     {format(diaryDate, 'yyyy年MM月dd日')} · {isShared ? '与伴侣共享' : '仅自己可见'}
                   </CardDescription>
                 </div>
-                {currentDiary.author_id === user?.id && (
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleEdit}>
-                      <Edit className="w-4 h-4 mr-2" />
-                      编辑
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => {
-                        setDiaryToDelete(currentDiary);
-                        setDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      删除
-                    </Button>
-                  </div>
-                )}
+                <div className="flex gap-2">
+                  {currentDiary.author_id === user?.id && (
+                    <>
+                      <Button variant="ghost" size="icon" onClick={handleEdit}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => {
+                          setDiaryToDelete(currentDiary);
+                          setDeleteDialogOpen(true);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="prose prose-sm max-w-none">
-                <p className="whitespace-pre-wrap">{content}</p>
+            <CardContent className="space-y-6">
+              {/* Display photos if available */}
+              {currentDiary.photos && currentDiary.photos.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-muted-foreground">约会照片</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {currentDiary.photos.map((photo: string, index: number) => (
+                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden group">
+                        <img 
+                          src={photo} 
+                          alt={`约会照片 ${index + 1}`}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">心情</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-3xl">{mood === 'happy' ? '😊' : mood === 'excited' ? '🤩' : mood === 'love' ? '😍' : mood === 'sad' ? '😢' : '😐'}</span>
+                  <span className="text-lg">
+                    {mood === 'happy' ? '开心' : mood === 'excited' ? '兴奋' : mood === 'love' ? '恋爱' : mood === 'sad' ? '难过' : '一般'}
+                  </span>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">日记内容</h3>
+                <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+                  {content}
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">日记内容</h3>
+                <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+                  {content}
+                </div>
               </div>
             </CardContent>
           </Card>
