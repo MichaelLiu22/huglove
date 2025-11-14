@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -848,70 +849,111 @@ const WeekendPlans = () => {
                     {p.notes && <CardDescription>{p.notes}</CardDescription>}
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      {p.activities.map(a => (
-                        <div key={a.id} className={`border-l-2 pl-4 py-2 rounded-r-lg space-y-2 ${getActivityColorClasses(a.location_type)}`}>
-                          <div className="flex items-center gap-2">
-                            {getActivityIcon(a.location_type)}
-                            <span className="text-sm text-muted-foreground">{a.activity_time}</span>
-                            <MapPin className="h-4 w-4" />
-                            <span className="font-medium">{a.location_name}</span>
+                    {/* 时间轴视图 */}
+                    <div className="relative space-y-0">
+                      {/* 时间轴线条 */}
+                      <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/30 via-primary/10 to-transparent" />
+                      
+                      {p.activities.map((a, index) => (
+                        <div key={a.id} className="relative">
+                          {/* 时间节点 */}
+                          <div className="absolute left-3 top-5 z-10">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 ${
+                              a.location_type === "餐厅" ? "bg-orange-500" :
+                              a.location_type === "咖啡厅" ? "bg-amber-600" :
+                              a.location_type === "公园" ? "bg-green-500" :
+                              a.location_type === "电影院" ? "bg-purple-500" :
+                              a.location_type === "商场" ? "bg-blue-500" :
+                              a.location_type === "Agent" ? "bg-pink-500" :
+                              "bg-muted"
+                            }`}>
+                              <div className="text-white">
+                                {React.cloneElement(getActivityIcon(a.location_type) as React.ReactElement, { 
+                                  className: "h-3.5 w-3.5 text-white" 
+                                })}
+                              </div>
+                            </div>
                           </div>
                           
-                          {/* 地址信息 */}
-                          {a.location_address && (
-                            <div className="flex items-start gap-2 group">
-                              <div className="text-sm text-muted-foreground flex-1">
-                                📍 {a.location_address}
+                          {/* 活动卡片 */}
+                          <div className="ml-16 mb-6">
+                            <div className={`rounded-lg p-4 shadow-sm border-l-4 space-y-2 transition-all hover:shadow-md ${
+                              a.location_type === "餐厅" ? "border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20" :
+                              a.location_type === "咖啡厅" ? "border-l-amber-600 bg-amber-50/50 dark:bg-amber-950/20" :
+                              a.location_type === "公园" ? "border-l-green-500 bg-green-50/50 dark:bg-green-950/20" :
+                              a.location_type === "电影院" ? "border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20" :
+                              a.location_type === "商场" ? "border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20" :
+                              a.location_type === "Agent" ? "border-l-pink-500 bg-pink-50/50 dark:bg-pink-950/20" :
+                              "border-l-border bg-muted/20"
+                            }`}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="secondary" className="text-xs font-mono">
+                                  {a.activity_time}
+                                </Badge>
+                                <span className="font-medium text-base">{a.location_name}</span>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => handleCopyToClipboard(a.location_address!, '地址')}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
+                              
+                              {/* 地址信息 */}
+                              {a.location_address && (
+                                <div className="flex items-start gap-2 group">
+                                  <div className="text-sm text-muted-foreground flex-1">
+                                    📍 {a.location_address}
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleCopyToClipboard(a.location_address!, '地址')}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+                              
+                              {/* 电话信息 */}
+                              {a.contact_phone && (
+                                <div className="flex items-center gap-2 group">
+                                  <a 
+                                    href={`tel:${a.contact_phone}`}
+                                    className="flex items-center gap-2 text-sm text-primary hover:underline flex-1"
+                                  >
+                                    <Phone className="h-3 w-3" />
+                                    <span>{a.contact_phone}</span>
+                                  </a>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleCopyToClipboard(a.contact_phone!, '电话')}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+                              
+                              {a.weather_condition && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Cloud className="h-4 w-4" />
+                                  <span>{a.weather_condition} {a.temperature}</span>
+                                </div>
+                              )}
+                              
+                              {a.recommended_dishes && (
+                                <div className="mt-2 p-2 bg-background/50 rounded text-xs whitespace-pre-wrap">
+                                  <span className="font-medium">推荐菜品：</span>
+                                  <div className="mt-1">{a.recommended_dishes}</div>
+                                </div>
+                              )}
+                              
+                              {a.description && (
+                                <p className="text-sm text-muted-foreground">{a.description}</p>
+                              )}
+                              
+                              {a.estimated_cost !== undefined && a.estimated_cost > 0 && (
+                                <p className="text-sm font-medium text-primary">${a.estimated_cost.toFixed(2)}</p>
+                              )}
                             </div>
-                          )}
-                          
-                          {/* 电话信息 */}
-                          {a.contact_phone && (
-                            <div className="flex items-center gap-2 group">
-                              <a 
-                                href={`tel:${a.contact_phone}`}
-                                className="flex items-center gap-2 text-sm text-primary hover:underline flex-1"
-                              >
-                                <Phone className="h-3 w-3" />
-                                <span>{a.contact_phone}</span>
-                              </a>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => handleCopyToClipboard(a.contact_phone!, '电话')}
-                              >
-                                <Copy className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          )}
-                          
-                          {a.weather_condition && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Cloud className="h-4 w-4" />
-                              <span>{a.weather_condition} {a.temperature}</span>
-                            </div>
-                          )}
-                          {a.recommended_dishes && (
-                            <div className="mt-2 p-2 bg-muted/50 rounded text-xs whitespace-pre-wrap">
-                              <span className="font-medium">推荐菜品：</span>
-                              <div className="mt-1">{a.recommended_dishes}</div>
-                            </div>
-                          )}
-                          {a.description && <p className="text-sm text-muted-foreground">{a.description}</p>}
-                          {a.estimated_cost !== undefined && a.estimated_cost > 0 && (
-                            <p className="text-sm font-medium text-primary">${a.estimated_cost.toFixed(2)}</p>
-                          )}
+                          </div>
                         </div>
                       ))}
                     </div>
