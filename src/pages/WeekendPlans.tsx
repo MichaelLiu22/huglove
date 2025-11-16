@@ -24,6 +24,7 @@ import { formatDateInLA, parseDateInLA, toLATime } from "@/lib/timezoneUtils";
 import { ActivityDetailsDialog } from "@/components/ActivityDetailsDialog";
 import { DatePlanReportDialog } from "@/components/DatePlanReportDialog";
 import { BillSplitSettings } from "@/components/BillSplitSettings";
+import { ActivityReviewDialog } from "@/components/ActivityReviewDialog";
 
 interface Activity {
   id: string;
@@ -81,6 +82,8 @@ const WeekendPlans = () => {
   const [partnerProfile, setPartnerProfile] = useState<any>(null);
   const [relationship, setRelationship] = useState<any>(null);
   const activitiesEndRef = useRef<HTMLDivElement>(null);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewingPlan, setReviewingPlan] = useState<DatePlan | null>(null);
   
   // 复制到剪贴板函数
   const handleCopyToClipboard = async (text: string, label: string) => {
@@ -988,28 +991,41 @@ const WeekendPlans = () => {
                       </div>
                     )}
                     
-                    <Button
-                      onClick={async () => {
-                        try {
-                          const { error } = await (supabase as any)
-                            .from('date_plans' as any)
-                            .update({ is_completed: true })
-                            .eq('id', p.id);
-                          
-                          if (error) throw error;
-                          
-                          toast.success('已标记为完成！');
-                          fetchPlans();
-                        } catch (error: any) {
-                          toast.error('标记失败：' + error.message);
-                        }
-                      }}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      <Check className="mr-2 h-4 w-4" />
-                      标记为完成
-                    </Button>
+                    <div className="space-y-2">
+                      <Button
+                        onClick={() => {
+                          setReviewingPlan(p);
+                          setReviewDialogOpen(true);
+                        }}
+                        variant="default"
+                        className="w-full"
+                      >
+                        <BookHeart className="mr-2 h-4 w-4" />
+                        开始复盘
+                      </Button>
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const { error } = await (supabase as any)
+                              .from('date_plans' as any)
+                              .update({ is_completed: true })
+                              .eq('id', p.id);
+                            
+                            if (error) throw error;
+                            
+                            toast.success('已标记为完成！');
+                            fetchPlans();
+                          } catch (error: any) {
+                            toast.error('标记失败：' + error.message);
+                          }
+                        }}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <Check className="mr-2 h-4 w-4" />
+                        标记为完成
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -1352,6 +1368,15 @@ const WeekendPlans = () => {
           planId={selectedPlanForReport.id}
           planDate={selectedPlanForReport.date}
           onReportGenerated={fetchPlans}
+        />
+      )}
+
+      {reviewingPlan && (
+        <ActivityReviewDialog
+          open={reviewDialogOpen}
+          onOpenChange={setReviewDialogOpen}
+          activities={reviewingPlan.activities}
+          onReviewComplete={fetchPlans}
         />
       )}
     </div>
