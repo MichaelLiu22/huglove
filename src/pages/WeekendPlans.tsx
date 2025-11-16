@@ -25,6 +25,7 @@ import { ActivityDetailsDialog } from "@/components/ActivityDetailsDialog";
 import { DatePlanReportDialog } from "@/components/DatePlanReportDialog";
 import { BillSplitSettings } from "@/components/BillSplitSettings";
 import { ActivityReviewDialog } from "@/components/ActivityReviewDialog";
+import { BillAnalysisDialog } from "@/components/BillAnalysisDialog";
 
 interface Activity {
   id: string;
@@ -84,6 +85,8 @@ const WeekendPlans = () => {
   const activitiesEndRef = useRef<HTMLDivElement>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewingPlan, setReviewingPlan] = useState<DatePlan | null>(null);
+  const [billAnalysisOpen, setBillAnalysisOpen] = useState(false);
+  const [analyzingPlan, setAnalyzingPlan] = useState<DatePlan | null>(null);
   
   // 复制到剪贴板函数
   const handleCopyToClipboard = async (text: string, label: string) => {
@@ -1371,12 +1374,32 @@ const WeekendPlans = () => {
         />
       )}
 
-      {reviewingPlan && (
+      {reviewingPlan && user && (
         <ActivityReviewDialog
           open={reviewDialogOpen}
           onOpenChange={setReviewDialogOpen}
           activities={reviewingPlan.activities}
-          onReviewComplete={fetchPlans}
+          onReviewComplete={() => {
+            fetchPlans();
+            setAnalyzingPlan(reviewingPlan);
+            setBillAnalysisOpen(true);
+          }}
+          userId={user.id}
+          partnerId={relationship?.partner_id || undefined}
+        />
+      )}
+
+      {analyzingPlan && user && (
+        <BillAnalysisDialog
+          open={billAnalysisOpen}
+          onOpenChange={setBillAnalysisOpen}
+          activities={analyzingPlan.activities}
+          userId={user.id}
+          partnerId={relationship?.partner_id || undefined}
+          userSplitPercentage={relationship?.user_split_percentage || 50}
+          partnerSplitPercentage={relationship?.partner_split_percentage || 50}
+          userNickname={userProfile?.nickname || "我"}
+          partnerNickname={partnerProfile?.nickname || "对方"}
         />
       )}
     </div>
