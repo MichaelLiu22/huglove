@@ -287,10 +287,8 @@ const WeekendPlans = () => {
         return { ...plan, activities: activitiesData || [] };
       }));
 
-      const today = toLATime(new Date());
-      today.setHours(0, 0, 0, 0);
-      setUpcomingPlans(plansWithActivities.filter(p => !p.is_completed && parseDateInLA(p.plan_date) >= today) as unknown as DatePlan[]);
-      setHistoryPlans(plansWithActivities.filter(p => p.is_completed || parseDateInLA(p.plan_date) < today) as unknown as DatePlan[]);
+      setUpcomingPlans(plansWithActivities.filter(p => !p.is_completed) as unknown as DatePlan[]);
+      setHistoryPlans(plansWithActivities.filter(p => p.is_completed) as unknown as DatePlan[]);
     } catch (error) {
       toast.error('获取计划失败');
     } finally {
