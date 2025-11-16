@@ -224,32 +224,36 @@ export const BillAnalysisDialog = ({
             </CardContent>
           </Card>
 
-          {/* 明细列表 */}
+          {/* 支出明细 - 按活动显示 */}
           <Card>
             <CardHeader>
               <CardTitle>支出明细</CardTitle>
+              <CardDescription>按活动分类的详细账单</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {activities.map((activity) => {
                   const activityExpenses = activity.expenses || [];
                   if (activityExpenses.length === 0) return null;
                   
+                  const activityTotal = activityExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+                  
                   return (
-                    <div key={activity.id} className="space-y-2">
-                      <p className="font-medium text-sm">{activity.location_name}</p>
-                      <div className="space-y-1 ml-4">
+                    <div key={activity.id} className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <p className="font-semibold">{activity.location_name}</p>
+                        <p className="text-sm font-medium text-primary">小计: ¥{activityTotal.toFixed(2)}</p>
+                      </div>
+                      <div className="bg-muted/30 rounded-lg p-3 space-y-2">
                         {activityExpenses.map((expense, idx) => (
-                          <div key={idx} className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">
-                              {expense.description} ({expense.category})
-                            </span>
-                            <span className="font-medium">
-                              ¥{expense.amount.toFixed(2)} 
-                              <span className="text-xs text-muted-foreground ml-2">
-                                ({expense.paid_by === userId ? userNickname : partnerNickname}支付)
-                              </span>
-                            </span>
+                          <div key={idx} className="flex justify-between items-start text-sm">
+                            <div className="flex-1">
+                              <p className="font-medium">{expense.description}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {expense.category} · {expense.paid_by === userId ? userNickname : partnerNickname}支付
+                              </p>
+                            </div>
+                            <span className="font-semibold ml-4">¥{expense.amount.toFixed(2)}</span>
                           </div>
                         ))}
                       </div>
@@ -257,6 +261,65 @@ export const BillAnalysisDialog = ({
                   );
                 })}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* 支付方明细 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>支付方明细</CardTitle>
+              <CardDescription>按支付人统计的详细账单</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* 用户支付明细 */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <p className="font-semibold text-base">{userNickname}支付的费用</p>
+                  <p className="font-bold text-primary">¥{userPaid.toFixed(2)}</p>
+                </div>
+                {allExpenses.filter(exp => exp.paid_by === userId).length > 0 ? (
+                  <div className="bg-muted/30 rounded-lg p-3 space-y-1.5">
+                    {allExpenses.filter(exp => exp.paid_by === userId).map((expense, idx) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {expense.description}
+                          <span className="text-xs ml-1">({expense.category})</span>
+                        </span>
+                        <span className="font-medium">¥{expense.amount.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-2">暂无支付记录</p>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* 对方支付明细 */}
+              {partnerId && (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <p className="font-semibold text-base">{partnerNickname}支付的费用</p>
+                    <p className="font-bold text-primary">¥{partnerPaid.toFixed(2)}</p>
+                  </div>
+                  {allExpenses.filter(exp => exp.paid_by === partnerId).length > 0 ? (
+                    <div className="bg-muted/30 rounded-lg p-3 space-y-1.5">
+                      {allExpenses.filter(exp => exp.paid_by === partnerId).map((expense, idx) => (
+                        <div key={idx} className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {expense.description}
+                            <span className="text-xs ml-1">({expense.category})</span>
+                          </span>
+                          <span className="font-medium">¥{expense.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-2">暂无支付记录</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
