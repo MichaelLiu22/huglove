@@ -38,8 +38,8 @@ export const BillAnalysisDialog = ({
   partnerId,
   userSplitPercentage,
   partnerSplitPercentage,
-  userNickname = "我",
-  partnerNickname = "对方"
+  userNickname = "A",
+  partnerNickname = "B"
 }: BillAnalysisDialogProps) => {
   
   // 收集所有费用
