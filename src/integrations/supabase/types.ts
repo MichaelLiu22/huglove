@@ -162,6 +162,7 @@ export type Database = {
           created_at: string
           description: string | null
           estimated_cost: number | null
+          expenses: Json | null
           id: string
           is_gift: boolean | null
           location_address: string | null
@@ -189,6 +190,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           estimated_cost?: number | null
+          expenses?: Json | null
           id?: string
           is_gift?: boolean | null
           location_address?: string | null
@@ -216,6 +218,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           estimated_cost?: number | null
+          expenses?: Json | null
           id?: string
           is_gift?: boolean | null
           location_address?: string | null

@@ -4,9 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Upload, X, Star } from "lucide-react";
+import { Loader2, Upload, X, Star, Plus, Trash2 } from "lucide-react";
+
+interface ExpenseItem {
+  description: string;
+  amount: number;
+  category: string;
+  paid_by: string;
+}
 
 interface Activity {
   id: string;
@@ -17,6 +25,7 @@ interface Activity {
   activity_notes?: string;
   activity_photos?: string[];
   activity_rating?: number;
+  expenses?: ExpenseItem[];
 }
 
 interface ActivityReviewDialogProps {
@@ -24,17 +33,24 @@ interface ActivityReviewDialogProps {
   onOpenChange: (open: boolean) => void;
   activities: Activity[];
   onReviewComplete: () => void;
+  userId: string;
+  partnerId?: string;
 }
 
-export const ActivityReviewDialog = ({ open, onOpenChange, activities, onReviewComplete }: ActivityReviewDialogProps) => {
+const EXPENSE_CATEGORIES = [
+  "餐饮", "交通", "娱乐", "购物", "住宿", "门票", "其他"
+];
+
+export const ActivityReviewDialog = ({ open, onOpenChange, activities, onReviewComplete, userId, partnerId }: ActivityReviewDialogProps) => {
   const [currentActivityIndex, setCurrentActivityIndex] = useState(0);
-  const [reviewData, setReviewData] = useState<Record<string, { notes: string; photos: string[]; rating: number }>>(
+  const [reviewData, setReviewData] = useState<Record<string, { notes: string; photos: string[]; rating: number; expenses: ExpenseItem[] }>>(
     activities.reduce((acc, activity) => ({
       ...acc,
       [activity.id]: {
         notes: activity.activity_notes || "",
         photos: activity.activity_photos || [],
-        rating: activity.activity_rating || 0
+        rating: activity.activity_rating || 0,
+        expenses: activity.expenses || []
       }
     }), {})
   );
@@ -110,6 +126,41 @@ export const ActivityReviewDialog = ({ open, onOpenChange, activities, onReviewC
     }
   };
 
+  const handleAddExpense = () => {
+    setReviewData(prev => ({
+      ...prev,
+      [currentActivity.id]: {
+        ...prev[currentActivity.id],
+        expenses: [
+          ...prev[currentActivity.id].expenses,
+          { description: "", amount: 0, category: "餐饮", paid_by: userId }
+        ]
+      }
+    }));
+  };
+
+  const handleRemoveExpense = (index: number) => {
+    setReviewData(prev => ({
+      ...prev,
+      [currentActivity.id]: {
+        ...prev[currentActivity.id],
+        expenses: prev[currentActivity.id].expenses.filter((_, i) => i !== index)
+      }
+    }));
+  };
+
+  const handleExpenseChange = (index: number, field: keyof ExpenseItem, value: string | number) => {
+    setReviewData(prev => ({
+      ...prev,
+      [currentActivity.id]: {
+        ...prev[currentActivity.id],
+        expenses: prev[currentActivity.id].expenses.map((exp, i) => 
+          i === index ? { ...exp, [field]: value } : exp
+        )
+      }
+    }));
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -121,7 +172,8 @@ export const ActivityReviewDialog = ({ open, onOpenChange, activities, onReviewC
           .update({
             activity_notes: review.notes,
             activity_photos: review.photos,
-            activity_rating: review.rating
+            activity_rating: review.rating,
+            expenses: review.expenses as any
           })
           .eq('id', activity.id);
 
@@ -236,7 +288,7 @@ export const ActivityReviewDialog = ({ open, onOpenChange, activities, onReviewC
                       <button
                         type="button"
                         onClick={() => handleRemovePhoto(photo)}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -281,6 +333,103 @@ export const ActivityReviewDialog = ({ open, onOpenChange, activities, onReviewC
                 </Label>
               </div>
             </div>
+          </div>
+
+          {/* 费用记录 */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>费用记录</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddExpense}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                添加费用
+              </Button>
+            </div>
+            
+            {currentReview.expenses.length > 0 ? (
+              <div className="space-y-3">
+                {currentReview.expenses.map((expense, index) => (
+                  <div key={index} className="bg-muted/50 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">费用项 {index + 1}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveExpense(index)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">项目名称</Label>
+                        <Input
+                          value={expense.description}
+                          onChange={(e) => handleExpenseChange(index, 'description', e.target.value)}
+                          placeholder="例如：主菜、门票"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label className="text-xs">金额（元）</Label>
+                        <Input
+                          type="number"
+                          value={expense.amount || ''}
+                          onChange={(e) => handleExpenseChange(index, 'amount', parseFloat(e.target.value) || 0)}
+                          placeholder="0.00"
+                          step="0.01"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">类别</Label>
+                        <Select
+                          value={expense.category}
+                          onValueChange={(value) => handleExpenseChange(index, 'category', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {EXPENSE_CATEGORIES.map(cat => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label className="text-xs">支付方</Label>
+                        <Select
+                          value={expense.paid_by}
+                          onValueChange={(value) => handleExpenseChange(index, 'paid_by', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={userId}>我</SelectItem>
+                            {partnerId && <SelectItem value={partnerId}>对方</SelectItem>}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                暂无费用记录，点击上方按钮添加
+              </p>
+            )}
           </div>
         </div>
 
