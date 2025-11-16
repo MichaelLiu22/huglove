@@ -416,8 +416,8 @@ export const ActivityReviewDialog = ({ open, onOpenChange, activities, onReviewC
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value={userId}>我</SelectItem>
-                            {partnerId && <SelectItem value={partnerId}>对方</SelectItem>}
+                            <SelectItem value={userId}>A</SelectItem>
+                            {partnerId && <SelectItem value={partnerId}>B</SelectItem>}
                           </SelectContent>
                         </Select>
                       </div>
