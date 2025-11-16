@@ -9,6 +9,7 @@ interface DiaryCardProps {
   isShared: boolean;
   diaryDate: string;
   isOwn: boolean;
+  photos?: string[];
   onClick: () => void;
 }
 
@@ -39,6 +40,7 @@ export const DiaryCard = ({
   isShared,
   diaryDate,
   isOwn,
+  photos,
   onClick
 }: DiaryCardProps) => {
   return (
@@ -82,6 +84,23 @@ export const DiaryCard = ({
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground line-clamp-3">{content}</p>
+        {photos && photos.length > 0 && (
+          <div className="mt-3 flex gap-2 overflow-x-auto">
+            {photos.slice(0, 3).map((photo, i) => (
+              <img 
+                key={i}
+                src={photo} 
+                alt={`照片 ${i + 1}`}
+                className="w-20 h-20 object-cover rounded flex-shrink-0"
+              />
+            ))}
+            {photos.length > 3 && (
+              <div className="w-20 h-20 flex items-center justify-center bg-muted rounded text-sm flex-shrink-0">
+                +{photos.length - 3}
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

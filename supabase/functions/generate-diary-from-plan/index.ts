@@ -65,6 +65,28 @@ serve(async (req) => {
       throw new Error('Unauthorized to access this plan');
     }
 
+    // Check if diary already exists for this date
+    const { data: existingDiary } = await supabase
+      .from('couple_diaries')
+      .select('id')
+      .eq('relationship_id', plan.relationship_id)
+      .eq('diary_date', plan.plan_date)
+      .maybeSingle();
+
+    if (existingDiary) {
+      console.log('Diary already exists for this date:', plan.plan_date);
+      return new Response(
+        JSON.stringify({ 
+          error: '该日期已有日记，请先删除旧日记再生成新的',
+          success: false 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 400 
+        }
+      );
+    }
+
     // Sort activities by time (早到晚)
     const activities = (plan.activities || []).sort((a: any, b: any) => {
       const timeA = a.activity_time || '00:00';
@@ -82,6 +104,55 @@ serve(async (req) => {
 
     console.log('Collected photos:', allPhotos.length);
 
+    // Analyze photos using AI
+    const photoDescriptions: Map<string, string> = new Map();
+    
+    if (allPhotos.length > 0) {
+      console.log('Starting photo analysis...');
+      for (const photoUrl of allPhotos) {
+        try {
+          const photoAnalysis = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${lovableApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash',
+              messages: [
+                { 
+                  role: 'user', 
+                  content: [
+                    {
+                      type: 'text',
+                      text: '请用1-2句话描述这张照片的内容，包括人物、场景、氛围等。用温馨浪漫的语气描述。用中文回答。'
+                    },
+                    {
+                      type: 'image_url',
+                      image_url: { url: photoUrl }
+                    }
+                  ]
+                }
+              ],
+            }),
+          });
+          
+          if (photoAnalysis.ok) {
+            const photoData = await photoAnalysis.json();
+            const description = photoData.choices[0].message.content;
+            photoDescriptions.set(photoUrl, description);
+            console.log('Photo analyzed successfully:', photoUrl.substring(0, 50));
+          } else {
+            console.error('Failed to analyze photo:', photoUrl, photoAnalysis.status);
+          }
+        } catch (error) {
+          console.error('Error analyzing photo:', photoUrl, error);
+          // Continue even if photo analysis fails
+        }
+      }
+      console.log('Photo analysis completed:', photoDescriptions.size, 'photos analyzed');
+    }
+
     // Build detailed context for AI with time information
     const activitiesText = activities
       .map((a: any, i: number) => {
@@ -92,11 +163,23 @@ serve(async (req) => {
         const description = a.description || '';
         const notes = a.activity_notes || '';
         const rating = a.activity_rating ? `⭐评分: ${a.activity_rating}/5` : '';
+        const weather = (a.weather_condition || a.temperature) ? 
+          `天气: ${a.weather_condition || ''} ${a.temperature || ''}`.trim() : '';
         
         let activityDesc = `${i + 1}. 时间: ${time}${endTime}\n   地点: ${location} (${type})`;
-        if (description) activityDesc += `\n   描述: ${description}`;
-        if (notes) activityDesc += `\n   笔记: ${notes}`;
+        if (description) activityDesc += `\n   活动描述: ${description}`;
+        if (notes) activityDesc += `\n   **用户笔记（重点参考）**: ${notes}`;
+        if (weather) activityDesc += `\n   ${weather}`;
         if (rating) activityDesc += `\n   ${rating}`;
+        
+        // Add photo descriptions for this activity
+        if (a.activity_photos && Array.isArray(a.activity_photos) && a.activity_photos.length > 0) {
+          activityDesc += '\n   照片记录:';
+          a.activity_photos.forEach((photoUrl: string) => {
+            const desc = photoDescriptions.get(photoUrl);
+            if (desc) activityDesc += `\n     - ${desc}`;
+          });
+        }
         
         return activityDesc;
       })
@@ -110,18 +193,23 @@ ${plan.notes ? `约会主题: ${plan.notes}` : ''}
 活动安排（按时间顺序）：
 ${activitiesText}
 
-要求：
+重要要求：
+- **核心原则：用户笔记是最重要的参考**，如果活动有"用户笔记（重点参考）"，必须以笔记的语气、情感和细节为核心基础进行扩展
+- 如果用户笔记中有具体的感受、对话、细节，要完整保留并自然扩展
+- 如果没有用户笔记，再根据活动类型、地点和描述进行合理想象
 - 以第一人称视角叙述，像是在写给自己或对方的日记
 - 严格按照时间顺序描述，从早到晚的活动流程
-- 语气温馨浪漫，充满感情
-- 描述活动的美好瞬间、感受和心情
-- 如果有用户的笔记内容，要融入到描述中，扩展成更生动的叙述
-- 如果有评分，可以自然地表达对活动的喜爱程度
-- 字数在400-600字
-- 用中文书写
-- 不要使用markdown格式
+- 如果有照片记录的描述，要自然地融入叙述中，描述照片中的场景和氛围
+- 如果有天气信息，可以自然地融入叙述中，描述天气对心情和活动的影响（没有天气信息就不要编造）
+- 如果活动有评分或特别的感受，要重点描述那些亮点时刻
+- 语言要温馨、真挚、有画面感，保持真实感和生活气息
+- 可以适当描述心情变化和小细节
+- 整体长度控制在500-800字
+- 不要编造过多情节，主要基于提供的信息进行自然扩展
+- 用中文书写，不要使用markdown格式
 - 不要写标题，直接开始正文
-- 要让读者感受到这一天的时间流逝和情感变化`;
+
+请生成日记正文内容：`;
 
     // Generate diary text using Lovable AI
     console.log('Generating diary text...');

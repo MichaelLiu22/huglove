@@ -393,16 +393,17 @@ const Diary = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {diaries.map((diary) => (
-                  <DiaryCard
-                    key={diary.id}
-                    title={diary.title}
-                    content={diary.content}
-                    mood={diary.mood}
-                    isShared={diary.is_shared}
-                    diaryDate={diary.diary_date}
-                    isOwn={diary.author_id === user?.id}
-                    onClick={() => viewDiary(diary)}
-                  />
+            <DiaryCard
+              key={diary.id}
+              title={diary.title}
+              content={diary.content}
+              mood={diary.mood}
+              isShared={diary.is_shared}
+              diaryDate={diary.diary_date}
+              isOwn={diary.author_id === user?.id}
+              photos={diary.photos}
+              onClick={() => viewDiary(diary)}
+            />
                 ))}
               </div>
             )}
@@ -467,13 +468,6 @@ const Diary = () => {
                   <span className="text-lg">
                     {mood === 'happy' ? '开心' : mood === 'excited' ? '兴奋' : mood === 'love' ? '恋爱' : mood === 'sad' ? '难过' : '一般'}
                   </span>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3">日记内容</h3>
-                <div className="prose prose-sm max-w-none whitespace-pre-wrap">
-                  {content}
                 </div>
               </div>
               
