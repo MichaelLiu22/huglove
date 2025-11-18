@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Users, Star, BookHeart, Image, Bell, CalendarHeart } from "lucide-react";
+import { Home, Users, Star, BookHeart, Image, Bell, CalendarHeart, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -16,8 +16,8 @@ export const MobileNav = ({ userId, unreadCount = 0 }: MobileNavProps) => {
     { path: "/", icon: Home, label: "首页" },
     { path: "/rating", icon: Star, label: "评分" },
     { path: "/weekend-plans", icon: CalendarHeart, label: "约会" },
+    { path: "/wishlist", icon: MapPin, label: "愿望" },
     { path: "/diary", icon: BookHeart, label: "日记" },
-    { path: "/photos", icon: Image, label: "照片" },
   ];
 
   const isActive = (path: string) => {

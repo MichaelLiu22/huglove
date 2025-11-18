@@ -15,6 +15,7 @@ import Photos from "./pages/Photos";
 import Approvals from "./pages/Approvals";
 import NotFound from "./pages/NotFound";
 import WeekendPlans from "./pages/WeekendPlans";
+import Wishlist from "./pages/Wishlist";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/photos" element={<Photos />} />
             <Route path="/approvals" element={<Approvals />} />
             <Route path="/weekend-plans" element={<WeekendPlans />} />
+            <Route path="/wishlist" element={<Wishlist />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

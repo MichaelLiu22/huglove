@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,11 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { MapPin, Clock, Plus, Trash2, Loader2, Navigation, Info, AlertCircle, Car, Calendar, FileDown, Share2 } from "lucide-react";
+import { MapPin, Clock, Plus, Trash2, Loader2, Navigation, Info, AlertCircle, Car, Calendar, FileDown, Share2, Bot, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RouteMapView } from "./RouteMapView";
+import { WishlistPicker } from "./WishlistPicker";
 import jsPDF from "jspdf";
 
 interface Location {
@@ -26,6 +29,7 @@ interface Location {
   lng?: number;
   openTime?: string;
   closeTime?: string;
+  wishlistItemId?: string;
 }
 
 interface OptimizedActivity {
@@ -41,6 +45,8 @@ interface OptimizedActivity {
   travelTimeFromPrevious: number;
   priority: string;
   isAutoScheduled: boolean;
+  isAiRecommended?: boolean;
+  wishlistItemId?: string;
   description?: string;
   recommendedDishes?: string;
 }
@@ -75,7 +81,25 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
   const [sharing, setSharing] = useState(false);
   const [savedRoute, setSavedRoute] = useState<OptimizedActivity[] | null>(null);
   const [editing, setEditing] = useState(false);
+  const [selectedWishlistItems, setSelectedWishlistItems] = useState<string[]>([]);
   const mapboxToken = "pk.eyJ1IjoibWljaGFlbHhsaXUyMiIsImEiOiJjbWkzdmMzc3Exd3A0Mmpvc2M5eTBiZnVyIn0.Es59RAcZ7DgaGYyoRlNdJg";
+
+  const { data: relationship } = useQuery({
+    queryKey: ["relationship"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("未登录");
+
+      const { data, error } = await supabase
+        .from("relationships")
+        .select("*")
+        .or(`user_id.eq.${user.id},partner_id.eq.${user.id}`)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const handleAddPlace = () => {
     const newPlace: Location = {
@@ -97,6 +121,57 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
 
   const handleUpdatePlace = (id: string, field: keyof Location, value: any) => {
     setPlaces(places.map(p => p.id === id ? { ...p, [field]: value } : p));
+  };
+
+  const handleToggleWishlistItem = (itemId: string, item: any) => {
+    if (selectedWishlistItems.includes(itemId)) {
+      setSelectedWishlistItems(selectedWishlistItems.filter(id => id !== itemId));
+      setPlaces(places.filter(p => p.wishlistItemId !== itemId));
+    } else {
+      setSelectedWishlistItems([...selectedWishlistItems, itemId]);
+      const newPlace: Location = {
+        id: `wishlist-${itemId}`,
+        name: item.location_name,
+        address: item.location_address || "",
+        type: item.location_type || "其他",
+        priority: item.priority,
+        estimatedDuration: item.estimated_duration,
+        lat: item.latitude,
+        lng: item.longitude,
+        openTime: item.open_time || undefined,
+        closeTime: item.close_time || undefined,
+        wishlistItemId: itemId,
+      };
+      setPlaces([...places, newPlace]);
+    }
+  };
+
+  const handleAddAllWishlistItems = (items: any[]) => {
+    const newItemIds: string[] = [];
+    const newPlaces: Location[] = [];
+
+    items.forEach(item => {
+      if (!selectedWishlistItems.includes(item.id)) {
+        newItemIds.push(item.id);
+        newPlaces.push({
+          id: `wishlist-${item.id}`,
+          name: item.location_name,
+          address: item.location_address || "",
+          type: item.location_type || "其他",
+          priority: item.priority,
+          estimatedDuration: item.estimated_duration,
+          lat: item.latitude,
+          lng: item.longitude,
+          openTime: item.open_time || undefined,
+          closeTime: item.close_time || undefined,
+          wishlistItemId: item.id,
+        });
+      }
+    });
+
+    setSelectedWishlistItems([...selectedWishlistItems, ...newItemIds]);
+    setPlaces([...places, ...newPlaces]);
+    toast.success(`已添加 ${newPlaces.length} 个地点`);
   };
 
   const handleOptimize = async () => {
@@ -620,9 +695,17 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
                                     className="mb-1"
                                   />
                                 ) : (
-                                  <div className="font-semibold flex items-center gap-2">
-                                    <MapPin className="h-4 w-4" />
-                                    {activity.locationName}
+                                  <div>
+                                    <div className="font-semibold flex items-center gap-2">
+                                      <MapPin className="h-4 w-4" />
+                                      {activity.locationName}
+                                    </div>
+                                    {activity.wishlistItemId && (
+                                      <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 mt-1">
+                                        <Bot className="w-3 h-3 mr-1" />
+                                        Michael AI推荐
+                                      </Badge>
+                                    )}
                                   </div>
                                 )}
                                 <div className="text-sm text-muted-foreground">{activity.locationAddress}</div>
