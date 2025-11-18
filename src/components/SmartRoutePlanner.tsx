@@ -68,7 +68,7 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
   const [optimizedRoute, setOptimizedRoute] = useState<OptimizedActivity[] | null>(null);
   const [skippedPlaces, setSkippedPlaces] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
-  const [mapboxToken, setMapboxToken] = useState("");
+  const mapboxToken = "pk.eyJ1IjoibWljaGFlbHhsaXUyMiIsImEiOiJjbWkzdmMzc3Exd3A0Mmpvc2M5eTBiZnVyIn0.Es59RAcZ7DgaGYyoRlNdJg";
 
   const handleAddPlace = () => {
     const newPlace: Location = {
@@ -396,24 +396,6 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
                 />
               )}
               
-              {!mapboxToken && (
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertDescription>
-                    <div className="space-y-2">
-                      <p>请输入 Mapbox Access Token 以显示地图</p>
-                      <Input
-                        placeholder="pk.eyJ1..."
-                        value={mapboxToken}
-                        onChange={(e) => setMapboxToken(e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        在 <a href="https://account.mapbox.com/" target="_blank" rel="noopener noreferrer" className="underline">Mapbox Dashboard</a> 获取您的 Access Token
-                      </p>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              )}
 
               {/* Summary */}
               {summary && (
