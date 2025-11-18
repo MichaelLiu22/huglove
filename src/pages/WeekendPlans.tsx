@@ -89,6 +89,7 @@ const WeekendPlans = () => {
   const [reviewingPlan, setReviewingPlan] = useState<DatePlan | null>(null);
   const [billAnalysisOpen, setBillAnalysisOpen] = useState(false);
   const [analyzingPlan, setAnalyzingPlan] = useState<DatePlan | null>(null);
+  const [applyingSmartSort, setApplyingSmartSort] = useState(false);
   
   // 复制到剪贴板函数
   const handleCopyToClipboard = async (text: string, label: string) => {
@@ -420,6 +421,95 @@ const WeekendPlans = () => {
     }
   };
 
+  const handleApplySmartSort = async () => {
+    // 验证必填字段
+    if (!selectedDate) {
+      toast.error("请先选择约会日期");
+      return;
+    }
+
+    if (activities.length < 2) {
+      toast.error("至少需要2个活动才能进行智能排序");
+      return;
+    }
+
+    const invalidActivities = activities.filter(a => !a.location_name.trim() || !a.location_address?.trim());
+    if (invalidActivities.length > 0) {
+      toast.error("请填写所有活动的名称和地址");
+      return;
+    }
+
+    // 获取第一个和最后一个活动作为起点和终点
+    const firstActivity = activities[0];
+    const lastActivity = activities[activities.length - 1];
+
+    // 中间的活动作为要优化的地点
+    const middleActivities = activities.slice(1, -1);
+
+    setApplyingSmartSort(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('optimize-date-route', {
+        body: {
+          startPoint: {
+            address: firstActivity.location_address,
+            time: firstActivity.activity_time || "09:00",
+          },
+          endPoint: {
+            address: lastActivity.location_address,
+            time: lastActivity.activity_time || "19:00",
+          },
+          places: middleActivities.map(a => ({
+            name: a.location_name,
+            address: a.location_address,
+            type: a.location_type,
+            priority: 'must_go',
+            estimatedDuration: 60,
+            openTime: "09:00",
+            closeTime: "22:00"
+          })),
+          planDate: selectedDate.toISOString().split('T')[0]
+        }
+      });
+
+      if (error) throw error;
+
+      // 更新活动列表
+      const optimizedActivities: Activity[] = data.optimizedRoute.map((route: any, index: number) => ({
+        id: activities.find(a => a.location_name === route.locationName)?.id || `temp-${Date.now()}-${index}`,
+        activity_time: route.activityTime,
+        activity_end_time: route.activityEndTime,
+        location_name: route.locationName,
+        location_address: route.locationAddress,
+        location_type: route.locationType,
+        description: route.description || activities.find(a => a.location_name === route.locationName)?.description || "",
+        order_index: index,
+        weather_condition: activities.find(a => a.location_name === route.locationName)?.weather_condition,
+        temperature: activities.find(a => a.location_name === route.locationName)?.temperature,
+        recommended_dishes: route.recommendedDishes || activities.find(a => a.location_name === route.locationName)?.recommended_dishes,
+        contact_name: activities.find(a => a.location_name === route.locationName)?.contact_name,
+        contact_phone: activities.find(a => a.location_name === route.locationName)?.contact_phone,
+        agent_notes: activities.find(a => a.location_name === route.locationName)?.agent_notes,
+        estimated_cost: activities.find(a => a.location_name === route.locationName)?.estimated_cost,
+        is_gift: activities.find(a => a.location_name === route.locationName)?.is_gift,
+        paid_by: activities.find(a => a.location_name === route.locationName)?.paid_by,
+      }));
+
+      setActivities(optimizedActivities);
+      
+      // 更新笔记，添加优化信息
+      const summary = data.summary;
+      const optimizationNote = `智能排序 | ${summary.totalDistance}km | 行驶${summary.totalDrivingTime}分钟 | 游玩${summary.totalActivityTime}分钟`;
+      setNotes(notes ? `${notes}\n\n${optimizationNote}` : optimizationNote);
+      
+      toast.success("智能排序完成！已优化活动顺序和时间");
+    } catch (error: any) {
+      console.error('Smart sort error:', error);
+      toast.error(error.message || "智能排序失败，请重试");
+    } finally {
+      setApplyingSmartSort(false);
+    }
+  };
+
   const handleSavePlan = async () => {
     if (!selectedDate || activities.filter(a => a.location_name.trim()).length === 0) {
       toast.error('请填写必要信息');
@@ -607,6 +697,25 @@ const WeekendPlans = () => {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label>活动安排 *</Label>
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleApplySmartSort}
+                      disabled={applyingSmartSort || activities.length < 2}
+                    >
+                      {applyingSmartSort ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          优化中...
+                        </>
+                      ) : (
+                        <>
+                          <Bot className="h-4 w-4 mr-2" />
+                          智能排序
+                        </>
+                      )}
+                    </Button>
                   </div>
 
                   {activities.map((activity, i) => (
