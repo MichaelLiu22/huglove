@@ -507,28 +507,43 @@ const WeekendPlans = () => {
 
       if (error) throw error;
 
-      // 更新活动列表
-      const optimizedActivities: Activity[] = data.optimizedRoute.map((route: any, index: number) => ({
-        id: activities.find(a => a.location_name === route.locationName)?.id || `temp-${Date.now()}-${index}`,
-        activity_time: route.activityTime,
-        activity_end_time: route.activityEndTime,
-        location_name: route.locationName,
-        location_address: route.locationAddress,
-        location_type: route.locationType,
-        description: route.description || activities.find(a => a.location_name === route.locationName)?.description || "",
-        order_index: index,
-        weather_condition: activities.find(a => a.location_name === route.locationName)?.weather_condition,
-        temperature: activities.find(a => a.location_name === route.locationName)?.temperature,
-        recommended_dishes: route.recommendedDishes || activities.find(a => a.location_name === route.locationName)?.recommended_dishes,
-        contact_name: activities.find(a => a.location_name === route.locationName)?.contact_name,
-        contact_phone: activities.find(a => a.location_name === route.locationName)?.contact_phone,
-        agent_notes: activities.find(a => a.location_name === route.locationName)?.agent_notes,
-        estimated_cost: activities.find(a => a.location_name === route.locationName)?.estimated_cost,
-        is_gift: activities.find(a => a.location_name === route.locationName)?.is_gift,
-        paid_by: activities.find(a => a.location_name === route.locationName)?.paid_by,
-      }));
-
-      setActivities(optimizedActivities);
+      // 更新活动列表：保留所有活动，只更新优化后的顺序和时间
+      const optimizedNames = new Set(data.optimizedRoute.map((r: any) => r.locationName));
+      const skippedNames = new Set((data.skippedLocations || []).map((s: any) => s.name));
+      
+      // 创建优化后的活动列表
+      const optimizedActivities: Activity[] = data.optimizedRoute.map((route: any, index: number) => {
+        const originalActivity = activities.find(a => a.location_name === route.locationName);
+        return {
+          id: originalActivity?.id || `temp-${Date.now()}-${index}`,
+          activity_time: route.activityTime,
+          activity_end_time: route.activityEndTime,
+          location_name: route.locationName,
+          location_address: route.locationAddress,
+          location_type: route.locationType,
+          description: route.description || originalActivity?.description || "",
+          order_index: index,
+          weather_condition: originalActivity?.weather_condition,
+          temperature: originalActivity?.temperature,
+          recommended_dishes: route.recommendedDishes || originalActivity?.recommended_dishes,
+          contact_name: originalActivity?.contact_name,
+          contact_phone: originalActivity?.contact_phone,
+          agent_notes: originalActivity?.agent_notes,
+          estimated_cost: originalActivity?.estimated_cost,
+          is_gift: originalActivity?.is_gift,
+          paid_by: originalActivity?.paid_by,
+        };
+      });
+      
+      // 保留跳过的活动，放在列表末尾
+      const skippedActivities = activities
+        .filter(a => !optimizedNames.has(a.location_name) || skippedNames.has(a.location_name))
+        .map((a, index) => ({
+          ...a,
+          order_index: optimizedActivities.length + index,
+        }));
+      
+      setActivities([...optimizedActivities, ...skippedActivities]);
       
       // 保存路线位置信息用于地图显示
       const routeLocations = data.optimizedRoute.map((route: any, index: number) => ({
