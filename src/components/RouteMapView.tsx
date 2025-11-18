@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { Loader2 } from 'lucide-react';
 
 interface RouteMapViewProps {
   locations: Array<{
@@ -18,6 +19,7 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<mapboxgl.Marker[]>([]);
+  const [isLoadingRoute, setIsLoadingRoute] = useState(false);
 
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken) return;
@@ -50,44 +52,142 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
     // Add navigation controls
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-    map.current.on('load', () => {
+    map.current.on('load', async () => {
       if (!map.current) return;
 
-      // Add route line
-      const coordinates = validLocations.map(loc => [loc.longitude!, loc.latitude!]);
-      
-      map.current.addSource('route', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: coordinates,
-          },
-        },
-      });
+      // Fetch and draw real driving routes
+      setIsLoadingRoute(true);
+      try {
+        // Get directions from Mapbox Directions API
+        const coordinates = validLocations.map(loc => `${loc.longitude},${loc.latitude}`).join(';');
+        const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full&steps=true&access_token=${mapboxToken}`;
+        
+        const response = await fetch(directionsUrl);
+        const data = await response.json();
+        
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          
+          // Add route source
+          map.current!.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {
+                distance: route.distance,
+                duration: route.duration,
+              },
+              geometry: route.geometry,
+            },
+          });
 
-      map.current.addLayer({
-        id: 'route',
-        type: 'line',
-        source: 'route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': 'hsl(var(--primary))',
-          'line-width': 4,
-          'line-opacity': 0.8,
-        },
-      });
+          // Add route line with shadow for better visibility
+          map.current!.addLayer({
+            id: 'route-shadow',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round',
+            },
+            paint: {
+              'line-color': '#000',
+              'line-width': 8,
+              'line-opacity': 0.2,
+              'line-blur': 2,
+            },
+          });
+
+          map.current!.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round',
+            },
+            paint: {
+              'line-color': 'hsl(var(--primary))',
+              'line-width': 5,
+              'line-opacity': 0.9,
+            },
+          });
+        } else {
+          // Fallback to simple line if directions API fails
+          const coordinates = validLocations.map(loc => [loc.longitude!, loc.latitude!]);
+          
+          map.current!.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'LineString',
+                coordinates: coordinates,
+              },
+            },
+          });
+
+          map.current!.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round',
+            },
+            paint: {
+              'line-color': 'hsl(var(--primary))',
+              'line-width': 4,
+              'line-opacity': 0.8,
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching directions:', error);
+        // Fallback to simple line
+        const coordinates = validLocations.map(loc => [loc.longitude!, loc.latitude!]);
+        
+        if (map.current) {
+          map.current.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'LineString',
+                coordinates: coordinates,
+              },
+            },
+          });
+
+          map.current.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round',
+            },
+            paint: {
+              'line-color': 'hsl(var(--primary))',
+              'line-width': 4,
+              'line-opacity': 0.8,
+            },
+          });
+        }
+      } finally {
+        setIsLoadingRoute(false);
+      }
 
       // Fit map to show all markers
-      map.current.fitBounds(bounds, {
-        padding: 50,
-        maxZoom: 14,
-      });
+      if (map.current) {
+        map.current.fitBounds(bounds, {
+          padding: 80,
+          maxZoom: 14,
+          duration: 1000,
+        });
+      }
     });
 
     // Add markers
@@ -139,8 +239,14 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
   }, [locations, mapboxToken]);
 
   return (
-    <div className="relative w-full h-[400px] rounded-lg overflow-hidden border border-border">
+    <div className="relative w-full h-[500px] rounded-lg overflow-hidden border border-border">
       <div ref={mapContainer} className="absolute inset-0" />
+      {isLoadingRoute && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-background/95 backdrop-blur-sm px-4 py-2 rounded-lg border border-border shadow-lg flex items-center gap-2 z-10">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm">正在计算最优路线...</span>
+        </div>
+      )}
       <div className="absolute bottom-4 left-4 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-lg border border-border text-xs">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
