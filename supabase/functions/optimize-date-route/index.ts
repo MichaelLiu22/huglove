@@ -1,5 +1,3 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -204,6 +202,7 @@ Deno.serve(async (req) => {
 
     // Initialize route
     const route: any[] = [];
+    const skippedPlaces: any[] = [];
     let currentTime = parseTime(startPoint.time);
     let currentIndex = 0; // Start point index in matrix
     const visitedIndices = new Set([0]);
@@ -293,7 +292,6 @@ Deno.serve(async (req) => {
     }
 
     // Try to insert chill places
-    const skippedPlaces: any[] = [];
     const chillStartIndex = mustGoPlaces.length + 1;
     
     for (let i = 0; i < chillPlaces.length; i++) {
@@ -386,7 +384,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: error instanceof Error ? error.message : String(error)
       }),
       { 
         status: 500, 
