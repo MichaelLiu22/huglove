@@ -165,6 +165,7 @@ export type Database = {
           estimated_duration: number | null
           expenses: Json | null
           id: string
+          is_ai_recommended: boolean | null
           is_auto_scheduled: boolean | null
           is_gift: boolean | null
           latitude: number | null
@@ -182,6 +183,7 @@ export type Database = {
           temperature: string | null
           travel_time_from_previous: number | null
           weather_condition: string | null
+          wishlist_item_id: string | null
         }
         Insert: {
           activity_end_time?: string | null
@@ -200,6 +202,7 @@ export type Database = {
           estimated_duration?: number | null
           expenses?: Json | null
           id?: string
+          is_ai_recommended?: boolean | null
           is_auto_scheduled?: boolean | null
           is_gift?: boolean | null
           latitude?: number | null
@@ -217,6 +220,7 @@ export type Database = {
           temperature?: string | null
           travel_time_from_previous?: number | null
           weather_condition?: string | null
+          wishlist_item_id?: string | null
         }
         Update: {
           activity_end_time?: string | null
@@ -235,6 +239,7 @@ export type Database = {
           estimated_duration?: number | null
           expenses?: Json | null
           id?: string
+          is_ai_recommended?: boolean | null
           is_auto_scheduled?: boolean | null
           is_gift?: boolean | null
           latitude?: number | null
@@ -252,6 +257,7 @@ export type Database = {
           temperature?: string | null
           travel_time_from_previous?: number | null
           weather_condition?: string | null
+          wishlist_item_id?: string | null
         }
         Relationships: [
           {
@@ -259,6 +265,13 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "date_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "date_plan_activities_wishlist_item_id_fkey"
+            columns: ["wishlist_item_id"]
+            isOneToOne: false
+            referencedRelation: "date_wishlist"
             referencedColumns: ["id"]
           },
         ]
@@ -398,6 +411,86 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "date_suggestions_relationship_id_fkey"
+            columns: ["relationship_id"]
+            isOneToOne: false
+            referencedRelation: "relationships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      date_wishlist: {
+        Row: {
+          added_by: string
+          added_date: string | null
+          close_time: string | null
+          created_at: string | null
+          description: string | null
+          estimated_duration: number | null
+          id: string
+          is_archived: boolean | null
+          last_visited_date: string | null
+          latitude: number | null
+          location_address: string | null
+          location_name: string
+          location_type: string | null
+          longitude: number | null
+          notes: string | null
+          open_time: string | null
+          priority: string | null
+          relationship_id: string
+          tags: string[] | null
+          updated_at: string | null
+          visit_count: number | null
+        }
+        Insert: {
+          added_by: string
+          added_date?: string | null
+          close_time?: string | null
+          created_at?: string | null
+          description?: string | null
+          estimated_duration?: number | null
+          id?: string
+          is_archived?: boolean | null
+          last_visited_date?: string | null
+          latitude?: number | null
+          location_address?: string | null
+          location_name: string
+          location_type?: string | null
+          longitude?: number | null
+          notes?: string | null
+          open_time?: string | null
+          priority?: string | null
+          relationship_id: string
+          tags?: string[] | null
+          updated_at?: string | null
+          visit_count?: number | null
+        }
+        Update: {
+          added_by?: string
+          added_date?: string | null
+          close_time?: string | null
+          created_at?: string | null
+          description?: string | null
+          estimated_duration?: number | null
+          id?: string
+          is_archived?: boolean | null
+          last_visited_date?: string | null
+          latitude?: number | null
+          location_address?: string | null
+          location_name?: string
+          location_type?: string | null
+          longitude?: number | null
+          notes?: string | null
+          open_time?: string | null
+          priority?: string | null
+          relationship_id?: string
+          tags?: string[] | null
+          updated_at?: string | null
+          visit_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "date_wishlist_relationship_id_fkey"
             columns: ["relationship_id"]
             isOneToOne: false
             referencedRelation: "relationships"
