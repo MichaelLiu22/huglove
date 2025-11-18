@@ -76,7 +76,7 @@ const WeekendPlans = () => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [notes, setNotes] = useState("");
   const [activities, setActivities] = useState<Activity[]>([
-    { id: `temp-${Date.now()}`, activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }
+    { id: `temp-${Date.now()}`, activity_time: "", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }
   ]);
   const [fetchingWeather, setFetchingWeather] = useState<number | null>(null);
   const [fetchingRecommendations, setFetchingRecommendations] = useState<number | null>(null);
@@ -349,11 +349,9 @@ const WeekendPlans = () => {
   };
 
   const handleAddActivity = () => {
-    const defaultTime = "09:00";
     setActivities([...activities, { 
       id: `temp-${Date.now()}`, 
-      activity_time: defaultTime, 
-      activity_end_time: addOneHour(defaultTime),
+      activity_time: "", 
       location_name: "", 
       location_address: "", 
       location_type: "", 
@@ -639,7 +637,7 @@ const WeekendPlans = () => {
       setEditingPlan(null);
       setSelectedDate(undefined);
       setNotes("");
-      setActivities([{ id: `temp-${Date.now()}`, activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
+      setActivities([{ id: `temp-${Date.now()}`, activity_time: "", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
       fetchPlans();
     } catch (error) {
       toast.error(editingPlan ? '更新失败' : '添加失败');
@@ -675,7 +673,7 @@ const WeekendPlans = () => {
               setEditingPlan(null);
               setSelectedDate(undefined);
               setNotes("");
-              setActivities([{ id: `temp-${Date.now()}`, activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
+              setActivities([{ id: `temp-${Date.now()}`, activity_time: "", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
               setCreateMode('manual');
               setOptimizedRouteLocations([]);
             }
@@ -783,27 +781,53 @@ const WeekendPlans = () => {
                           </Button>
                         )}
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label>开始时间</Label>
-                          <Input type="time" value={activity.activity_time} onChange={(e) => {
-                            const newActs = [...activities];
-                            newActs[i].activity_time = e.target.value;
-                            // 如果结束时间为空，自动设置为开始时间+1小时
-                            if (!newActs[i].activity_end_time) {
-                              newActs[i].activity_end_time = addOneHour(e.target.value);
-                            }
-                            setActivities(newActs);
-                          }} />
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id={`flexible-${i}`}
+                            checked={!activity.activity_time}
+                            onChange={(e) => {
+                              const newActs = [...activities];
+                              if (e.target.checked) {
+                                newActs[i].activity_time = '';
+                                newActs[i].activity_end_time = '';
+                              } else {
+                                newActs[i].activity_time = '09:00';
+                                newActs[i].activity_end_time = addOneHour('09:00');
+                              }
+                              setActivities(newActs);
+                            }}
+                            className="h-4 w-4 rounded border-border"
+                          />
+                          <label htmlFor={`flexible-${i}`} className="text-sm text-muted-foreground">
+                            灵活时间 (由AI安排)
+                          </label>
                         </div>
-                        <div>
-                          <Label>结束时间（可选）</Label>
-                          <Input type="time" value={activity.activity_end_time || ''} onChange={(e) => {
-                            const newActs = [...activities];
-                            newActs[i].activity_end_time = e.target.value;
-                            setActivities(newActs);
-                          }} />
-                        </div>
+                        {activity.activity_time && (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>开始时间</Label>
+                              <Input type="time" value={activity.activity_time} onChange={(e) => {
+                                const newActs = [...activities];
+                                newActs[i].activity_time = e.target.value;
+                                // 如果结束时间为空，自动设置为开始时间+1小时
+                                if (!newActs[i].activity_end_time) {
+                                  newActs[i].activity_end_time = addOneHour(e.target.value);
+                                }
+                                setActivities(newActs);
+                              }} />
+                            </div>
+                            <div>
+                              <Label>结束时间（可选）</Label>
+                              <Input type="time" value={activity.activity_end_time || ''} onChange={(e) => {
+                                const newActs = [...activities];
+                                newActs[i].activity_end_time = e.target.value;
+                                setActivities(newActs);
+                              }} />
+                            </div>
+                          </div>
+                        )}
                       </div>
                       {/* 时间冲突警告 */}
                       {activity.activity_time && activity.activity_end_time && checkTimeConflict(i, activity.activity_time, activity.activity_end_time) && (
