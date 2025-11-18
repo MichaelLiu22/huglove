@@ -117,10 +117,14 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
     try {
       const { data, error } = await supabase.functions.invoke('optimize-date-route', {
         body: {
-          startLocation: startAddress,
-          endLocation: endAddress,
-          startTime,
-          endTime,
+          startPoint: {
+            address: startAddress,
+            time: startTime,
+          },
+          endPoint: {
+            address: endAddress,
+            time: endTime,
+          },
           places: places.map(p => ({
             name: p.name,
             address: p.address,
@@ -128,7 +132,7 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
             priority: p.priority,
             estimatedDuration: p.estimatedDuration
           })),
-          date: selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+          planDate: selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
         }
       });
 
