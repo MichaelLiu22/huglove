@@ -162,18 +162,25 @@ export type Database = {
           created_at: string
           description: string | null
           estimated_cost: number | null
+          estimated_duration: number | null
           expenses: Json | null
           id: string
+          is_auto_scheduled: boolean | null
           is_gift: boolean | null
+          latitude: number | null
           location_address: string | null
           location_name: string
           location_type: string | null
+          longitude: number | null
           order_index: number
           paid_by: string | null
           plan_id: string
+          priority: string | null
           recommended_dishes: string | null
           report_generated_at: string | null
+          skip_reason: string | null
           temperature: string | null
+          travel_time_from_previous: number | null
           weather_condition: string | null
         }
         Insert: {
@@ -190,18 +197,25 @@ export type Database = {
           created_at?: string
           description?: string | null
           estimated_cost?: number | null
+          estimated_duration?: number | null
           expenses?: Json | null
           id?: string
+          is_auto_scheduled?: boolean | null
           is_gift?: boolean | null
+          latitude?: number | null
           location_address?: string | null
           location_name: string
           location_type?: string | null
+          longitude?: number | null
           order_index?: number
           paid_by?: string | null
           plan_id: string
+          priority?: string | null
           recommended_dishes?: string | null
           report_generated_at?: string | null
+          skip_reason?: string | null
           temperature?: string | null
+          travel_time_from_previous?: number | null
           weather_condition?: string | null
         }
         Update: {
@@ -218,18 +232,25 @@ export type Database = {
           created_at?: string
           description?: string | null
           estimated_cost?: number | null
+          estimated_duration?: number | null
           expenses?: Json | null
           id?: string
+          is_auto_scheduled?: boolean | null
           is_gift?: boolean | null
+          latitude?: number | null
           location_address?: string | null
           location_name?: string
           location_type?: string | null
+          longitude?: number | null
           order_index?: number
           paid_by?: string | null
           plan_id?: string
+          priority?: string | null
           recommended_dishes?: string | null
           report_generated_at?: string | null
+          skip_reason?: string | null
           temperature?: string | null
+          travel_time_from_previous?: number | null
           weather_condition?: string | null
         }
         Relationships: [
@@ -245,29 +266,50 @@ export type Database = {
       date_plans: {
         Row: {
           created_at: string
+          end_location_address: string | null
+          end_location_lat: number | null
+          end_location_lng: number | null
           id: string
+          is_auto_routed: boolean | null
           is_completed: boolean
           notes: string | null
           plan_date: string
           relationship_id: string
+          start_location_address: string | null
+          start_location_lat: number | null
+          start_location_lng: number | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          end_location_address?: string | null
+          end_location_lat?: number | null
+          end_location_lng?: number | null
           id?: string
+          is_auto_routed?: boolean | null
           is_completed?: boolean
           notes?: string | null
           plan_date: string
           relationship_id: string
+          start_location_address?: string | null
+          start_location_lat?: number | null
+          start_location_lng?: number | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          end_location_address?: string | null
+          end_location_lat?: number | null
+          end_location_lng?: number | null
           id?: string
+          is_auto_routed?: boolean | null
           is_completed?: boolean
           notes?: string | null
           plan_date?: string
           relationship_id?: string
+          start_location_address?: string | null
+          start_location_lat?: number | null
+          start_location_lng?: number | null
           updated_at?: string
         }
         Relationships: []
