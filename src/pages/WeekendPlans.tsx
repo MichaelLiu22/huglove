@@ -27,6 +27,7 @@ import { BillSplitSettings } from "@/components/BillSplitSettings";
 import { ActivityReviewDialog } from "@/components/ActivityReviewDialog";
 import { BillAnalysisDialog } from "@/components/BillAnalysisDialog";
 import { SmartRoutePlanner } from "@/components/SmartRoutePlanner";
+import { RouteMapView } from "@/components/RouteMapView";
 
 interface Activity {
   id: string;
@@ -90,6 +91,15 @@ const WeekendPlans = () => {
   const [billAnalysisOpen, setBillAnalysisOpen] = useState(false);
   const [analyzingPlan, setAnalyzingPlan] = useState<DatePlan | null>(null);
   const [applyingSmartSort, setApplyingSmartSort] = useState(false);
+  const [optimizedRouteLocations, setOptimizedRouteLocations] = useState<Array<{
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    orderIndex: number;
+    locationType: string;
+  }>>([]);
+  const [mapboxToken, setMapboxToken] = useState<string>("");
   
   // 复制到剪贴板函数
   const handleCopyToClipboard = async (text: string, label: string) => {
@@ -267,8 +277,34 @@ const WeekendPlans = () => {
   };
 
   useEffect(() => {
-    if (user) fetchRelationship();
+    if (user) {
+      fetchRelationship();
+      fetchMapboxToken();
+    }
   }, [user]);
+
+  const fetchMapboxToken = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-mapbox-token`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setMapboxToken(data.token);
+      }
+    } catch (error) {
+      console.error('Error fetching Mapbox token:', error);
+    }
+  };
 
   useEffect(() => {
     if (relationshipId) fetchPlans();
@@ -496,6 +532,17 @@ const WeekendPlans = () => {
 
       setActivities(optimizedActivities);
       
+      // 保存路线位置信息用于地图显示
+      const routeLocations = data.optimizedRoute.map((route: any, index: number) => ({
+        name: route.locationName,
+        address: route.locationAddress,
+        latitude: route.latitude,
+        longitude: route.longitude,
+        orderIndex: index,
+        locationType: route.locationType || 'other'
+      }));
+      setOptimizedRouteLocations(routeLocations);
+      
       // 更新笔记，添加优化信息
       const summary = data.summary;
       const optimizationNote = `智能排序 | ${summary.totalDistance}km | 行驶${summary.totalDrivingTime}分钟 | 游玩${summary.totalActivityTime}分钟`;
@@ -630,6 +677,7 @@ const WeekendPlans = () => {
               setNotes("");
               setActivities([{ id: `temp-${Date.now()}`, activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
               setCreateMode('manual');
+              setOptimizedRouteLocations([]);
             }
           }}>
               <DialogTrigger asChild>
@@ -966,6 +1014,22 @@ const WeekendPlans = () => {
                   </Button>
                   <div ref={activitiesEndRef} />
                 </div>
+
+                {/* 地图显示 */}
+                {optimizedRouteLocations.length > 0 && mapboxToken && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      优化后的路线地图
+                    </Label>
+                    <div className="rounded-lg overflow-hidden border border-border h-[400px]">
+                      <RouteMapView 
+                        locations={optimizedRouteLocations}
+                        mapboxToken={mapboxToken}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <DialogFooter>
