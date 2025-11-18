@@ -863,7 +863,6 @@ const WeekendPlans = () => {
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>取消</Button>
                 <Button onClick={handleSavePlan}>{editingPlan ? '保存' : '创建'}</Button>
               </DialogFooter>
-              </div>
               </>
               )}
           </DialogContent>
