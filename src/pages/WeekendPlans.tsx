@@ -26,6 +26,7 @@ import { DatePlanReportDialog } from "@/components/DatePlanReportDialog";
 import { BillSplitSettings } from "@/components/BillSplitSettings";
 import { ActivityReviewDialog } from "@/components/ActivityReviewDialog";
 import { BillAnalysisDialog } from "@/components/BillAnalysisDialog";
+import { SmartRoutePlanner } from "@/components/SmartRoutePlanner";
 
 interface Activity {
   id: string;
@@ -81,6 +82,7 @@ const WeekendPlans = () => {
   const [generatingDiary, setGeneratingDiary] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [partnerProfile, setPartnerProfile] = useState<any>(null);
+  const [createMode, setCreateMode] = useState<'manual' | 'smart'>('manual');
   const [relationship, setRelationship] = useState<any>(null);
   const activitiesEndRef = useRef<HTMLDivElement>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -532,13 +534,14 @@ const WeekendPlans = () => {
             )}
             <Dialog open={isDialogOpen} onOpenChange={(open) => {
               setIsDialogOpen(open);
-              if (!open) {
-                setEditingPlan(null);
-                setSelectedDate(undefined);
-                setNotes("");
-                setActivities([{ id: `temp-${Date.now()}`, activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
-              }
-            }}>
+            if (!open) {
+              setEditingPlan(null);
+              setSelectedDate(undefined);
+              setNotes("");
+              setActivities([{ id: `temp-${Date.now()}`, activity_time: "09:00", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
+              setCreateMode('manual');
+            }
+          }}>
               <DialogTrigger asChild>
                 <Button className="bg-gradient-primary text-white"><Plus className="h-4 w-4 mr-2" />添加计划</Button>
               </DialogTrigger>
@@ -548,6 +551,40 @@ const WeekendPlans = () => {
                 <DialogDescription>计划一整天的美好约会</DialogDescription>
               </DialogHeader>
               
+              {!editingPlan && (
+                <Tabs value={createMode} onValueChange={(v) => setCreateMode(v as 'manual' | 'smart')} className="w-full mt-4">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="manual">手动创建</TabsTrigger>
+                    <TabsTrigger value="smart">智能排序</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              )}
+
+              {createMode === 'smart' && !editingPlan ? (
+                <SmartRoutePlanner
+                  selectedDate={selectedDate}
+                  onSaveRoute={(optimizedRoute, summary) => {
+                    const newActivities: Activity[] = optimizedRoute.map((act, idx) => ({
+                      id: `temp-${Date.now()}-${idx}`,
+                      activity_time: act.activityTime,
+                      activity_end_time: act.activityEndTime,
+                      location_name: act.locationName,
+                      location_address: act.locationAddress || '',
+                      location_type: act.locationType,
+                      description: act.description || '',
+                      order_index: act.orderIndex,
+                      recommended_dishes: act.recommendedDishes,
+                    }));
+                    
+                    setActivities(newActivities);
+                    setNotes(`智能排序 | ${summary.totalDistance}km | 行驶${summary.totalDrivingTime}分钟 | 游玩${summary.totalActivityTime}分钟`);
+                    setCreateMode('manual');
+                    toast.success("路线已导入，可继续调整或保存");
+                  }}
+                  onCancel={() => setCreateMode('manual')}
+                />
+              ) : (
+              <>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label>约会日期 *</Label>
@@ -826,8 +863,11 @@ const WeekendPlans = () => {
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>取消</Button>
                 <Button onClick={handleSavePlan}>{editingPlan ? '保存' : '创建'}</Button>
               </DialogFooter>
-            </DialogContent>
-            </Dialog>
+              </div>
+              </>
+              )}
+          </DialogContent>
+          </Dialog>
           </div>
         </div>
 
