@@ -537,9 +537,22 @@ const WeekendPlans = () => {
         latitude: route.latitude,
         longitude: route.longitude,
         orderIndex: index,
-        locationType: route.locationType || 'other'
+        locationType: route.locationType || 'other',
+        isSkipped: false,
       }));
-      setOptimizedRouteLocations(routeLocations);
+
+      // 添加跳过的地点
+      const skippedLocations = (data.skippedLocations || []).map((place: any) => ({
+        name: place.name,
+        address: place.address,
+        latitude: place.latitude,
+        longitude: place.longitude,
+        orderIndex: -1,
+        locationType: place.locationType || 'other',
+        isSkipped: true,
+      }));
+
+      setOptimizedRouteLocations([...routeLocations, ...skippedLocations]);
       
       // 更新笔记，添加优化信息
       const summary = data.summary;
