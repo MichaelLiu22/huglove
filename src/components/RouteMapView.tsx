@@ -11,6 +11,7 @@ interface RouteMapViewProps {
     longitude: number | null;
     orderIndex: number;
     locationType: string;
+    isSkipped?: boolean;
   }>;
   mapboxToken: string;
 }
@@ -30,6 +31,10 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
     );
 
     if (validLocations.length === 0) return;
+
+    // Separate reachable and skipped locations
+    const reachableLocations = validLocations.filter(loc => !loc.isSkipped);
+    const skippedLocations = validLocations.filter(loc => loc.isSkipped);
 
     // Initialize map
     mapboxgl.accessToken = mapboxToken;
@@ -55,11 +60,11 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
     map.current.on('load', async () => {
       if (!map.current) return;
 
-      // Fetch and draw real driving routes
+      // Fetch and draw real driving routes (only for reachable locations)
       setIsLoadingRoute(true);
       try {
-        // Get directions from Mapbox Directions API
-        const coordinates = validLocations.map(loc => `${loc.longitude},${loc.latitude}`).join(';');
+        // Get directions from Mapbox Directions API (only for reachable locations)
+        const coordinates = reachableLocations.map(loc => `${loc.longitude},${loc.latitude}`).join(';');
         const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full&steps=true&access_token=${mapboxToken}`;
         
         const response = await fetch(directionsUrl);
@@ -113,8 +118,8 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
             },
           });
         } else {
-          // Fallback to simple line if directions API fails
-          const coordinates = validLocations.map(loc => [loc.longitude!, loc.latitude!]);
+          // Fallback to simple line if directions API fails (only for reachable locations)
+          const coordinates = reachableLocations.map(loc => [loc.longitude!, loc.latitude!]);
           
           map.current!.addSource('route', {
             type: 'geojson',
@@ -145,8 +150,8 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
         }
       } catch (error) {
         console.error('Error fetching directions:', error);
-        // Fallback to simple line
-        const coordinates = validLocations.map(loc => [loc.longitude!, loc.latitude!]);
+        // Fallback to simple line (only for reachable locations)
+        const coordinates = reachableLocations.map(loc => [loc.longitude!, loc.latitude!]);
         
         if (map.current) {
           map.current.addSource('route', {
@@ -190,8 +195,8 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
       }
     });
 
-    // Add markers
-    validLocations.forEach((loc, index) => {
+    // Add markers for reachable locations
+    reachableLocations.forEach((loc, index) => {
       const el = document.createElement('div');
       el.className = 'custom-marker';
       el.style.width = '32px';
@@ -199,7 +204,7 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
       el.style.borderRadius = '50%';
       el.style.backgroundColor = index === 0 
         ? 'hsl(var(--primary))' 
-        : index === validLocations.length - 1
+        : index === reachableLocations.length - 1
         ? 'hsl(var(--destructive))'
         : 'hsl(var(--secondary))';
       el.style.border = '3px solid white';
@@ -222,6 +227,43 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
                 <strong>${loc.name}</strong><br/>
                 <small>${loc.address}</small><br/>
                 <span style="color: hsl(var(--primary));">${loc.locationType}</span>
+              </div>`
+            )
+        )
+        .addTo(map.current!);
+
+      markers.current.push(marker);
+    });
+
+    // Add markers for skipped locations with special styling
+    skippedLocations.forEach((loc) => {
+      const el = document.createElement('div');
+      el.className = 'custom-marker-skipped';
+      el.style.width = '32px';
+      el.style.height = '32px';
+      el.style.borderRadius = '50%';
+      el.style.backgroundColor = 'hsl(var(--muted))';
+      el.style.border = '3px solid hsl(var(--muted-foreground))';
+      el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+      el.style.cursor = 'pointer';
+      el.style.display = 'flex';
+      el.style.alignItems = 'center';
+      el.style.justifyContent = 'center';
+      el.style.color = 'hsl(var(--muted-foreground))';
+      el.style.fontSize = '16px';
+      el.style.fontWeight = 'bold';
+      el.textContent = '✕';
+
+      const marker = new mapboxgl.Marker(el)
+        .setLngLat([loc.longitude!, loc.latitude!])
+        .setPopup(
+          new mapboxgl.Popup({ offset: 25 })
+            .setHTML(
+              `<div style="padding: 8px;">
+                <strong>${loc.name}</strong><br/>
+                <small>${loc.address}</small><br/>
+                <span style="color: hsl(var(--muted-foreground));">${loc.locationType}</span><br/>
+                <span style="color: hsl(var(--destructive)); font-weight: bold;">本次无法到达</span>
               </div>`
             )
         )
