@@ -13,6 +13,8 @@ interface Location {
   estimatedDuration: number;
   lat?: number;
   lng?: number;
+  openTime?: string;
+  closeTime?: string;
 }
 
 interface RouteRequest {
@@ -113,6 +115,26 @@ function shouldInsertMeal(currentTime: number, nextTime: number): { shouldInsert
   }
   
   return { shouldInsert: false, mealType: null };
+}
+
+function isWithinBusinessHours(arrivalTime: number, duration: number, openTime?: string, closeTime?: string): { valid: boolean; warning?: string } {
+  if (!openTime || !closeTime) {
+    return { valid: true };
+  }
+  
+  const openMinutes = parseTime(openTime);
+  const closeMinutes = parseTime(closeTime);
+  const endTime = arrivalTime + duration;
+  
+  if (arrivalTime < openMinutes) {
+    return { valid: false, warning: `到达时间早于营业时间 ${openTime}` };
+  }
+  
+  if (endTime > closeMinutes) {
+    return { valid: false, warning: `预计离开时间晚于关门时间 ${closeTime}` };
+  }
+  
+  return { valid: true };
 }
 
 Deno.serve(async (req) => {
@@ -235,6 +257,18 @@ Deno.serve(async (req) => {
       }
 
       currentTime = addTime(currentTime, travelTime);
+      
+      // Check business hours
+      const businessHoursCheck = isWithinBusinessHours(currentTime, place.estimatedDuration, place.openTime, place.closeTime);
+      if (!businessHoursCheck.valid) {
+        console.warn(`Skipping ${place.name}: ${businessHoursCheck.warning}`);
+        skippedPlaces.push({
+          name: place.name,
+          reason: businessHoursCheck.warning || '时间冲突'
+        });
+        remaining.splice(remaining.indexOf(nearestIndex), 1);
+        continue;
+      }
 
       route.push({
         orderIndex: route.length,
