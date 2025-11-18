@@ -24,6 +24,8 @@ interface Location {
   estimatedDuration: number;
   lat?: number;
   lng?: number;
+  openTime?: string;
+  closeTime?: string;
 }
 
 interface OptimizedActivity {
@@ -71,6 +73,8 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
   const [summary, setSummary] = useState<any>(null);
   const [exporting, setExporting] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [savedRoute, setSavedRoute] = useState<OptimizedActivity[] | null>(null);
+  const [editing, setEditing] = useState(false);
   const mapboxToken = "pk.eyJ1IjoibWljaGFlbHhsaXUyMiIsImEiOiJjbWkzdmMzc3Exd3A0Mmpvc2M5eTBiZnVyIn0.Es59RAcZ7DgaGYyoRlNdJg";
 
   const handleAddPlace = () => {
@@ -81,6 +85,8 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
       type: "餐厅",
       priority: "must_go",
       estimatedDuration: 60,
+      openTime: "09:00",
+      closeTime: "22:00",
     };
     setPlaces([...places, newPlace]);
   };
@@ -130,7 +136,9 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
             address: p.address,
             type: p.type,
             priority: p.priority,
-            estimatedDuration: p.estimatedDuration
+            estimatedDuration: p.estimatedDuration,
+            openTime: p.openTime,
+            closeTime: p.closeTime
           })),
           planDate: selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
         }
@@ -152,8 +160,36 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
 
   const handleSave = () => {
     if (optimizedRoute && summary) {
+      setSavedRoute(optimizedRoute);
+      toast.success("路线已保存，您可以继续添加新地点");
+    }
+  };
+
+  const handleFinalSave = () => {
+    if (optimizedRoute && summary) {
       onSaveRoute(optimizedRoute, summary);
     }
+  };
+
+  const handleEditActivity = (index: number, field: string, value: any) => {
+    if (!optimizedRoute) return;
+    const updated = [...optimizedRoute];
+    updated[index] = { ...updated[index], [field]: value };
+    setOptimizedRoute(updated);
+  };
+
+  const handleDeleteActivity = (index: number) => {
+    if (!optimizedRoute) return;
+    const updated = optimizedRoute.filter((_, i) => i !== index);
+    setOptimizedRoute(updated.map((activity, i) => ({ ...activity, orderIndex: i })));
+  };
+
+  const handleMoveActivity = (fromIndex: number, toIndex: number) => {
+    if (!optimizedRoute) return;
+    const updated = [...optimizedRoute];
+    const [moved] = updated.splice(fromIndex, 1);
+    updated.splice(toIndex, 0, moved);
+    setOptimizedRoute(updated.map((activity, i) => ({ ...activity, orderIndex: i })));
   };
 
   const handleExportPDF = async () => {
@@ -444,6 +480,25 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
                               className="mt-2"
                             />
                           </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="text-xs">营业开始</Label>
+                              <Input
+                                type="time"
+                                value={place.openTime || "09:00"}
+                                onChange={(e) => handleUpdatePlace(place.id, 'openTime', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">营业结束</Label>
+                              <Input
+                                type="time"
+                                value={place.closeTime || "22:00"}
+                                onChange={(e) => handleUpdatePlace(place.id, 'closeTime', e.target.value)}
+                              />
+                            </div>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -478,13 +533,24 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Navigation className="h-5 w-5" />
-                优化后的路线
-              </CardTitle>
-              <CardDescription>
-                根据您的地点和时间安排，我们为您规划了最佳路线
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Navigation className="h-5 w-5" />
+                    优化后的路线
+                  </CardTitle>
+                  <CardDescription>
+                    根据您的地点和时间安排，我们为您规划了最佳路线
+                  </CardDescription>
+                </div>
+                <Button
+                  variant={editing ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setEditing(!editing)}
+                >
+                  {editing ? "完成编辑" : "编辑路线"}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {mapboxToken && (
@@ -546,26 +612,85 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
                         <Card className="flex-1">
                           <CardContent className="p-4 space-y-2">
                             <div className="flex items-start justify-between">
-                              <div>
-                                <div className="font-semibold flex items-center gap-2">
-                                  <MapPin className="h-4 w-4" />
-                                  {activity.locationName}
-                                </div>
+                              <div className="flex-1">
+                                {editing ? (
+                                  <Input
+                                    value={activity.locationName}
+                                    onChange={(e) => handleEditActivity(index, 'locationName', e.target.value)}
+                                    className="mb-1"
+                                  />
+                                ) : (
+                                  <div className="font-semibold flex items-center gap-2">
+                                    <MapPin className="h-4 w-4" />
+                                    {activity.locationName}
+                                  </div>
+                                )}
                                 <div className="text-sm text-muted-foreground">{activity.locationAddress}</div>
                               </div>
-                              <Badge variant={activity.isAutoScheduled ? 'secondary' : 'outline'} className="text-xs">
-                                {activity.isAutoScheduled ? '自动安排' : '手动'}
-                              </Badge>
+                              {editing && (
+                                <div className="flex gap-1 ml-2">
+                                  {index > 0 && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleMoveActivity(index, index - 1)}
+                                    >
+                                      ↑
+                                    </Button>
+                                  )}
+                                  {index < optimizedRoute.length - 1 && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleMoveActivity(index, index + 1)}
+                                    >
+                                      ↓
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteActivity(index)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
+                              {!editing && (
+                                <Badge variant={activity.isAutoScheduled ? 'secondary' : 'outline'} className="text-xs">
+                                  {activity.isAutoScheduled ? '自动安排' : '手动'}
+                                </Badge>
+                              )}
                             </div>
 
                             <div className="flex items-center gap-4 text-sm">
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                <span>{activity.activityTime} - {activity.activityEndTime}</span>
-                              </div>
-                              <span className="text-muted-foreground">
-                                停留 {activity.estimatedDuration} 分钟
-                              </span>
+                              {editing ? (
+                                <div className="flex gap-2">
+                                  <Input
+                                    type="time"
+                                    value={activity.activityTime}
+                                    onChange={(e) => handleEditActivity(index, 'activityTime', e.target.value)}
+                                    className="w-24"
+                                  />
+                                  <span>-</span>
+                                  <Input
+                                    type="time"
+                                    value={activity.activityEndTime}
+                                    onChange={(e) => handleEditActivity(index, 'activityEndTime', e.target.value)}
+                                    className="w-24"
+                                  />
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    <span>{activity.activityTime} - {activity.activityEndTime}</span>
+                                  </div>
+                                  <span className="text-muted-foreground">
+                                    停留 {activity.estimatedDuration} 分钟
+                                  </span>
+                                </>
+                              )}
                             </div>
 
                             {activity.description && (
@@ -606,8 +731,8 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
 
           <div className="flex flex-col gap-2">
             <div className="flex gap-2">
-              <Button onClick={handleSave} className="flex-1">
-                保存为约会计划
+              <Button onClick={handleSave} variant="outline">
+                保存并继续添加
               </Button>
               <Button onClick={handleExportPDF} disabled={exporting} variant="outline">
                 {exporting ? (
@@ -624,6 +749,9 @@ export function SmartRoutePlanner({ onSaveRoute, onCancel, selectedDate }: Smart
                   <Share2 className="h-4 w-4 mr-2" />
                 )}
                 分享给伴侣
+              </Button>
+              <Button onClick={handleFinalSave} className="flex-1">
+                最终保存
               </Button>
             </div>
             <div className="flex gap-2">
