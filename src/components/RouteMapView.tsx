@@ -123,9 +123,9 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
             },
             paint: {
               'line-color': '#000',
-              'line-width': 8,
-              'line-opacity': 0.2,
-              'line-blur': 2,
+              'line-width': 12,
+              'line-opacity': 0.35,
+              'line-blur': 3,
             },
           });
 
@@ -139,8 +139,8 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
             },
             paint: {
               'line-color': 'hsl(var(--primary))',
-              'line-width': 5,
-              'line-opacity': 0.9,
+              'line-width': 7,
+              'line-opacity': 1,
             },
           });
 
@@ -226,43 +226,8 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
             },
             paint: {
               'line-color': 'hsl(var(--primary))',
-              'line-width': 4,
-              'line-opacity': 0.8,
-            },
-          });
-        }
-      } catch (error) {
-        console.error('Error loading route:', error);
-        setMapError('路线加载失败，将显示简化路线');
-        
-        // Fallback to simple line (only for reachable locations)
-        const coordinates = reachableLocations.map(loc => [loc.longitude!, loc.latitude!]);
-        
-        if (map.current) {
-          map.current.addSource('route', {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              properties: {},
-              geometry: {
-                type: 'LineString',
-                coordinates: coordinates,
-              },
-            },
-          });
-
-          map.current.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round',
-            },
-            paint: {
-              'line-color': 'hsl(var(--primary))',
-              'line-width': 4,
-              'line-opacity': 0.8,
+              'line-width': 7,
+              'line-opacity': 1,
             },
           });
         }
