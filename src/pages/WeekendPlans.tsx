@@ -112,6 +112,15 @@ const WeekendPlans = () => {
     time?: string;
   }>>([]);
   const [isGeocodingLive, setIsGeocodingLive] = useState(false);
+  const [planMapLocations, setPlanMapLocations] = useState<Record<string, Array<{
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    orderIndex: number;
+    locationType: string;
+    time?: string;
+  }>>>({});
   
   // 复制到剪贴板函数
   const handleCopyToClipboard = async (text: string, label: string) => {
@@ -347,6 +356,70 @@ const WeekendPlans = () => {
     setIsGeocodingLive(false);
   };
 
+  // 为所有计划准备地图数据
+  const loadMapDataForPlans = async (plans: DatePlan[]) => {
+    if (!mapboxToken) return;
+    
+    const mapData: Record<string, Array<any>> = {};
+    
+    for (const plan of plans) {
+      if (plan.activities && plan.activities.length > 0) {
+        const results = [];
+        
+        for (let i = 0; i < plan.activities.length; i++) {
+          const activity = plan.activities[i];
+          
+          if (!activity.location_address?.trim()) {
+            continue;
+          }
+          
+          if (activity.latitude && activity.longitude) {
+            results.push({
+              name: activity.location_name || '未命名活动',
+              address: activity.location_address,
+              latitude: activity.latitude,
+              longitude: activity.longitude,
+              orderIndex: i,
+              locationType: activity.location_type || '其他',
+              time: activity.activity_time
+            });
+            continue;
+          }
+          
+          try {
+            const response = await fetch(
+              `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(activity.location_address)}.json?access_token=${mapboxToken}&limit=1`
+            );
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.features && data.features.length > 0) {
+                const [lng, lat] = data.features[0].center;
+                results.push({
+                  name: activity.location_name || '未命名活动',
+                  address: activity.location_address,
+                  latitude: lat,
+                  longitude: lng,
+                  orderIndex: i,
+                  locationType: activity.location_type || '其他',
+                  time: activity.activity_time
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to geocode ${activity.location_address}:`, error);
+          }
+        }
+        
+        if (results.length > 0) {
+          mapData[plan.id] = results;
+        }
+      }
+    }
+    
+    setPlanMapLocations(mapData);
+  };
+
   useEffect(() => {
     if (user) {
       fetchRelationship();
@@ -419,8 +492,14 @@ const WeekendPlans = () => {
         return { ...plan, activities: activitiesData || [] };
       }));
 
-      setUpcomingPlans(plansWithActivities.filter(p => !p.is_completed) as unknown as DatePlan[]);
-      setHistoryPlans(plansWithActivities.filter(p => p.is_completed) as unknown as DatePlan[]);
+      const upcoming = plansWithActivities.filter(p => !p.is_completed) as unknown as DatePlan[];
+      const history = plansWithActivities.filter(p => p.is_completed) as unknown as DatePlan[];
+      
+      setUpcomingPlans(upcoming);
+      setHistoryPlans(history);
+      
+      // 加载地图数据
+      await loadMapDataForPlans([...upcoming, ...history]);
     } catch (error) {
       toast.error('获取计划失败');
     } finally {
@@ -1517,6 +1596,25 @@ const WeekendPlans = () => {
                         )}
                       </div>
                     )}
+
+                    {/* 活动地点地图 */}
+                    {planMapLocations[p.id] && planMapLocations[p.id].length > 0 && (
+                      <div className="space-y-2 mt-6 pt-4 border-t">
+                        <Label className="flex items-center gap-2 text-sm font-medium">
+                          <MapPin className="h-4 w-4" />
+                          活动地点地图
+                        </Label>
+                        <div className="rounded-lg overflow-hidden border border-border h-[300px] shadow-sm">
+                          <RouteMapView 
+                            locations={planMapLocations[p.id]}
+                            mapboxToken={mapboxToken}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground text-center">
+                          📍 {planMapLocations[p.id].length} 个活动地点
+                        </p>
+                      </div>
+                    )}
                     
                     <div className="space-y-2">
                       <Button
@@ -1764,6 +1862,25 @@ const WeekendPlans = () => {
                             </div>
                           )}
                         </div>
+                      </div>
+                    )}
+
+                    {/* 活动地点地图 */}
+                    {planMapLocations[p.id] && planMapLocations[p.id].length > 0 && (
+                      <div className="space-y-2 mt-6 pt-4 border-t">
+                        <Label className="flex items-center gap-2 text-sm font-medium">
+                          <MapPin className="h-4 w-4" />
+                          活动地点地图
+                        </Label>
+                        <div className="rounded-lg overflow-hidden border border-border h-[300px] shadow-sm">
+                          <RouteMapView 
+                            locations={planMapLocations[p.id]}
+                            mapboxToken={mapboxToken}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground text-center">
+                          📍 {planMapLocations[p.id].length} 个活动地点
+                        </p>
                       </div>
                     )}
                     
