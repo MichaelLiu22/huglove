@@ -443,20 +443,25 @@ const WeekendPlans = () => {
               })).filter((p: any) => p.address);
               
               if (places.length >= 2) {
+                const startTime = plan.activities[0]?.activity_time?.split('-')[0] || '09:00';
+                const endTime = plan.activities[plan.activities.length - 1]?.activity_time?.split('-')[1] || '18:00';
+                
                 const { data: routeData, error: routeError } = await supabase.functions.invoke('optimize-date-route', {
                   body: {
                     startPoint: {
                       address: plan.start_location_address || places[0].address,
                       lat: plan.start_location_lat || results[0].latitude,
-                      lng: plan.start_location_lng || results[0].longitude
+                      lng: plan.start_location_lng || results[0].longitude,
+                      time: startTime
                     },
                     endPoint: {
                       address: plan.end_location_address || places[places.length - 1].address,
                       lat: plan.end_location_lat || results[results.length - 1].latitude,
-                      lng: plan.end_location_lng || results[results.length - 1].longitude
+                      lng: plan.end_location_lng || results[results.length - 1].longitude,
+                      time: endTime
                     },
                     places: places,
-                    startTime: plan.activities[0]?.activity_time?.split('-')[0] || '09:00'
+                    planDate: plan.plan_date
                   }
                 });
                 
