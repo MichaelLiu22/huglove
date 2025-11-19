@@ -480,6 +480,9 @@ const WeekendPlans = () => {
     // 中间的活动作为要优化的地点
     const middleActivities = activities.slice(1, -1);
 
+    // 保存当前活动快照，用于失败时恢复
+    const activitiesSnapshot = [...activities];
+    
     setApplyingSmartSort(true);
     try {
       const { data, error } = await supabase.functions.invoke('optimize-date-route', {
@@ -505,7 +508,36 @@ const WeekendPlans = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Smart sort error:', error);
+        throw new Error(error.message || '智能排序服务调用失败');
+      }
+
+      // 严格的数据校验
+      if (!data) {
+        console.error('Smart sort returned no data');
+        throw new Error('智能排序服务返回异常，请稍后重试');
+      }
+
+      if (!Array.isArray(data.optimizedRoute)) {
+        console.error('Invalid optimizedRoute format:', data);
+        throw new Error('智能排序返回数据格式异常');
+      }
+
+      if (data.optimizedRoute.length === 0) {
+        console.error('Empty optimizedRoute');
+        throw new Error('智能排序未返回任何路线，请检查地点信息');
+      }
+
+      // 验证返回的路线数据完整性
+      const hasInvalidRoute = data.optimizedRoute.some((r: any) => 
+        !r.locationName || !r.locationAddress
+      );
+      
+      if (hasInvalidRoute) {
+        console.error('Invalid route data:', data.optimizedRoute);
+        throw new Error('智能排序返回的地点信息不完整');
+      }
 
       // 更新活动列表：保留所有活动，只更新优化后的顺序和时间
       const optimizedNames = new Set(data.optimizedRoute.map((r: any) => r.locationName));
@@ -518,9 +550,9 @@ const WeekendPlans = () => {
           id: originalActivity?.id || `temp-${Date.now()}-${index}`,
           activity_time: route.activityTime,
           activity_end_time: route.activityEndTime,
-          location_name: route.locationName,
-          location_address: route.locationAddress,
-          location_type: route.locationType,
+          location_name: route.locationName || originalActivity?.location_name || "",
+          location_address: route.locationAddress || originalActivity?.location_address || "",
+          location_type: route.locationType || originalActivity?.location_type,
           description: route.description || originalActivity?.description || "",
           order_index: index,
           weather_condition: originalActivity?.weather_condition,
@@ -543,7 +575,21 @@ const WeekendPlans = () => {
           order_index: optimizedActivities.length + index,
         }));
       
-      setActivities([...optimizedActivities, ...skippedActivities]);
+      // 最终验证：确保新列表不为空
+      const newActivities = [...optimizedActivities, ...skippedActivities];
+      if (newActivities.length === 0) {
+        console.error('Final activities list is empty');
+        throw new Error('智能排序结果为空，保持原计划不变');
+      }
+      
+      // 验证所有活动都有名称
+      const hasEmptyName = newActivities.some(a => !a.location_name?.trim());
+      if (hasEmptyName) {
+        console.error('Some activities have empty names:', newActivities);
+        throw new Error('智能排序导致部分地点名称丢失，保持原计划不变');
+      }
+      
+      setActivities(newActivities);
       
       // 保存路线位置信息用于地图显示
       const routeLocations = data.optimizedRoute.map((route: any, index: number) => ({
@@ -574,10 +620,19 @@ const WeekendPlans = () => {
       const optimizationNote = `智能排序 | ${summary.totalDistance}km | 行驶${summary.totalDrivingTime}分钟 | 游玩${summary.totalActivityTime}分钟`;
       setNotes(notes ? `${notes}\n\n${optimizationNote}` : optimizationNote);
       
-      toast.success("智能排序完成！已优化活动顺序和时间");
+      toast.success("智能排序完成！");
     } catch (error: any) {
-      console.error('Smart sort error:', error);
-      toast.error(error.message || "智能排序失败，请重试");
+      console.error('Error applying smart sort:', error);
+      
+      // 恢复原始活动列表
+      setActivities(activitiesSnapshot);
+      
+      // 根据错误类型显示不同提示
+      if (error.message) {
+        toast.error(error.message);
+      } else {
+        toast.error("智能排序失败，已恢复原计划");
+      }
     } finally {
       setApplyingSmartSort(false);
     }
