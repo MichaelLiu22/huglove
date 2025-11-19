@@ -248,6 +248,7 @@ Deno.serve(async (req) => {
           activityEndTime: formatTime(mealTime + 60),
           estimatedDuration: 60,
           travelTimeFromPrevious: 0,
+          travelDistanceFromPrevious: 0,
           priority: 'must_go',
           isAutoScheduled: true,
           description: `建议在附近选择${mealCheck.mealType === 'lunch' ? '午餐' : '晚餐'}地点`,
@@ -280,6 +281,7 @@ Deno.serve(async (req) => {
         activityEndTime: formatTime(currentTime + place.estimatedDuration),
         estimatedDuration: place.estimatedDuration,
         travelTimeFromPrevious: travelTime,
+        travelDistanceFromPrevious: parseFloat(travelDistance),
         priority: place.priority,
         isAutoScheduled: true,
         description: '',
@@ -321,7 +323,9 @@ Deno.serve(async (req) => {
           parseTime(route[bestPosition].activityTime) - route[bestPosition].travelTimeFromPrevious :
           currentTime;
         
-        const travelTime = Math.ceil(durations[currentIndex][chillIndex] / 60);
+        const prevIdx = bestPosition === 0 ? 0 : mustGoIndices[bestPosition - 1];
+        const travelTime = Math.ceil(durations[prevIdx][chillIndex] / 60);
+        const travelDistance = (distances[prevIdx][chillIndex] / 1000).toFixed(1);
         
         route.splice(bestPosition, 0, {
           orderIndex: bestPosition,
@@ -334,6 +338,7 @@ Deno.serve(async (req) => {
           activityEndTime: formatTime(insertTime + place.estimatedDuration),
           estimatedDuration: place.estimatedDuration,
           travelTimeFromPrevious: travelTime,
+          travelDistanceFromPrevious: parseFloat(travelDistance),
           priority: place.priority,
           isAutoScheduled: true,
           description: '',
@@ -352,13 +357,10 @@ Deno.serve(async (req) => {
       item.orderIndex = idx;
     });
 
-    // Calculate summary
-    const totalDistance = distances[0].reduce((sum: number, dist: number, idx: number) => {
-      if (visitedIndices.has(idx)) {
-        return sum + dist;
-      }
-      return sum;
-    }, 0) / 1000;
+    // Calculate summary - sum up actual travel distances from each segment
+    const totalDistance = route.reduce((sum, item) => {
+      return sum + (item.travelDistanceFromPrevious || 0);
+    }, 0);
 
     const totalDrivingTime = route.reduce((sum, item) => sum + (item.travelTimeFromPrevious || 0), 0);
     const totalActivityTime = route.reduce((sum, item) => sum + item.estimatedDuration, 0);
