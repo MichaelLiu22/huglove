@@ -349,7 +349,8 @@ const WeekendPlans = () => {
   };
 
   const handleAddActivity = () => {
-    setActivities([...activities, { 
+    console.log('handleAddActivity called, current activities:', activities.length);
+    const newActivity = { 
       id: `temp-${Date.now()}`, 
       activity_time: "", 
       location_name: "", 
@@ -357,7 +358,9 @@ const WeekendPlans = () => {
       location_type: "", 
       description: "", 
       order_index: activities.length 
-    }]);
+    };
+    console.log('Adding new activity:', newActivity);
+    setActivities([...activities, newActivity]);
     setTimeout(() => {
       activitiesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }, 100);
