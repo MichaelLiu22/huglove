@@ -21,23 +21,37 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<mapboxgl.Marker[]>([]);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!mapContainer.current || !mapboxToken) return;
+    // Early return if required dependencies are missing
+    if (!mapContainer.current) return;
+    
+    if (!mapboxToken) {
+      setMapError('正在加载地图配置...');
+      return;
+    }
 
     // Filter valid locations with coordinates
     const validLocations = locations.filter(
       loc => loc.latitude !== null && loc.longitude !== null
     );
 
-    if (validLocations.length === 0) return;
+    if (validLocations.length === 0) {
+      setMapError('暂无有效地点信息');
+      return;
+    }
+
+    // Clear any previous errors
+    setMapError(null);
 
     // Separate reachable and skipped locations
     const reachableLocations = validLocations.filter(loc => !loc.isSkipped);
     const skippedLocations = validLocations.filter(loc => loc.isSkipped);
 
-    // Initialize map
-    mapboxgl.accessToken = mapboxToken;
+    try {
+      // Initialize map
+      mapboxgl.accessToken = mapboxToken;
     
     // Calculate center and bounds
     const bounds = new mapboxgl.LngLatBounds();
@@ -63,11 +77,23 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
       // Fetch and draw real driving routes (only for reachable locations)
       setIsLoadingRoute(true);
       try {
+        if (reachableLocations.length < 2) {
+          // If only one location or less, just fit bounds without route
+          setIsLoadingRoute(false);
+          map.current.fitBounds(bounds, { padding: 80, duration: 1000 });
+          return;
+        }
+
         // Get directions from Mapbox Directions API (only for reachable locations)
         const coordinates = reachableLocations.map(loc => `${loc.longitude},${loc.latitude}`).join(';');
         const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full&steps=true&access_token=${mapboxToken}`;
         
         const response = await fetch(directionsUrl);
+        
+        if (!response.ok) {
+          throw new Error(`Mapbox API error: ${response.status}`);
+        }
+        
         const data = await response.json();
         
         if (data.routes && data.routes.length > 0) {
@@ -149,7 +175,9 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
           });
         }
       } catch (error) {
-        console.error('Error fetching directions:', error);
+        console.error('Error loading route:', error);
+        setMapError('路线加载失败，将显示简化路线');
+        
         // Fallback to simple line (only for reachable locations)
         const coordinates = reachableLocations.map(loc => [loc.longitude!, loc.latitude!]);
         
@@ -181,6 +209,9 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
             },
           });
         }
+        
+        // Clear error after showing fallback
+        setTimeout(() => setMapError(null), 3000);
       } finally {
         setIsLoadingRoute(false);
       }
@@ -272,39 +303,60 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
       markers.current.push(marker);
     });
 
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      setMapError('地图初始化失败，请刷新重试');
+    }
+
     // Cleanup
     return () => {
       markers.current.forEach(marker => marker.remove());
       markers.current = [];
       map.current?.remove();
+      map.current = null;
     };
   }, [locations, mapboxToken]);
 
   return (
     <div className="relative w-full h-[500px] rounded-lg overflow-hidden border border-border">
       <div ref={mapContainer} className="absolute inset-0" />
+      
+      {/* 加载状态 */}
       {isLoadingRoute && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-background/95 backdrop-blur-sm px-4 py-2 rounded-lg border border-border shadow-lg flex items-center gap-2 z-10">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span className="text-sm">正在计算最优路线...</span>
         </div>
       )}
-      <div className="absolute bottom-4 left-4 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-lg border border-border text-xs">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--primary))' }} />
-            <span>起点</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--secondary))' }} />
-            <span>途经</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--destructive))' }} />
-            <span>终点</span>
+
+      {/* 错误提示 */}
+      {mapError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/50 backdrop-blur-sm z-10">
+          <div className="bg-background/95 backdrop-blur-sm px-6 py-4 rounded-lg border border-border shadow-lg text-center">
+            <p className="text-sm text-muted-foreground">{mapError}</p>
           </div>
         </div>
-      </div>
+      )}
+      
+      {/* 图例 */}
+      {!mapError && (
+        <div className="absolute bottom-4 left-4 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-lg border border-border text-xs">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--primary))' }} />
+              <span>起点</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--secondary))' }} />
+              <span>途经</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'hsl(var(--destructive))' }} />
+              <span>终点</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
