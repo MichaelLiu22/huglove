@@ -644,93 +644,154 @@ const WeekendPlans = () => {
       toast.error('请选择约会日期');
       return;
     }
-    
-    const validActivities = activities.filter(a => a.location_name.trim());
-    if (validActivities.length === 0) {
-      toast.error('请至少添加一个活动并填写地点名称');
+
+    // 至少要有一个有内容的活动（时间 / 名称 / 地址 / 备注 任意一个）
+    const meaningfulActivities = activities.filter(a =>
+      (a.activity_time && a.activity_time.trim()) ||
+      (a.location_name && a.location_name.trim()) ||
+      (a.location_address && a.location_address.trim()) ||
+      (a.description && a.description.trim())
+    );
+
+    if (meaningfulActivities.length === 0) {
+      toast.error('请至少添加一个活动（填写时间、地点或备注）');
       return;
     }
 
     try {
-      // 按时间排序活动
-      const sortedActivities = [...activities]
-        .filter(a => a.location_name.trim())
-        .sort((a, b) => {
-          const timeA = a.activity_time || '00:00';
-          const timeB = b.activity_time || '00:00';
-          return timeA.localeCompare(timeB);
-        });
+      // 按时间排序活动（没有时间的排在最后）
+      const sortedActivities = [...meaningfulActivities].sort((a, b) => {
+        const timeA = a.activity_time || '99:99';
+        const timeB = b.activity_time || '99:99';
+        return timeA.localeCompare(timeB);
+      });
 
       if (editingPlan) {
         // 更新现有计划
-        await (supabase as any).from('date_plans' as any).update({
-          plan_date: formatDateInLA(selectedDate),
-          notes
-        }).eq('id', editingPlan.id);
+        const { error: planError } = await (supabase as any)
+          .from('date_plans' as any)
+          .update({
+            plan_date: formatDateInLA(selectedDate),
+            notes
+          })
+          .eq('id', editingPlan.id);
+
+        if (planError) {
+          console.error('更新计划失败:', planError);
+          throw planError;
+        }
 
         // 删除旧活动
-        await (supabase as any).from('date_plan_activities' as any).delete().eq('plan_id', editingPlan.id);
+        const { error: delError } = await (supabase as any)
+          .from('date_plan_activities' as any)
+          .delete()
+          .eq('plan_id', editingPlan.id);
+
+        if (delError) {
+          console.error('删除旧活动失败:', delError);
+          throw delError;
+        }
 
         // 插入新活动
-        await (supabase as any).from('date_plan_activities' as any).insert(
-          sortedActivities.map((a, i) => ({ 
-            plan_id: editingPlan.id, 
-            activity_time: a.activity_time,
-            activity_end_time: a.activity_end_time,
-            location_name: a.location_name,
-            location_address: a.location_address,
-            location_type: a.location_type,
-            description: a.description,
-            weather_condition: a.weather_condition,
-            temperature: a.temperature,
-            recommended_dishes: a.recommended_dishes,
-            contact_name: a.contact_name,
-            contact_phone: a.contact_phone,
-            agent_notes: a.agent_notes,
-            order_index: i
-          })) as any as any
-        );
+        const { error: insertError } = await (supabase as any)
+          .from('date_plan_activities' as any)
+          .insert(
+            sortedActivities.map((a, i) => ({
+              plan_id: editingPlan.id,
+              activity_time: a.activity_time,
+              activity_end_time: a.activity_end_time,
+              location_name: a.location_name?.trim() || '未命名活动',
+              location_address: a.location_address,
+              location_type: a.location_type,
+              description: a.description,
+              weather_condition: a.weather_condition,
+              temperature: a.temperature,
+              recommended_dishes: a.recommended_dishes,
+              contact_name: a.contact_name,
+              contact_phone: a.contact_phone,
+              agent_notes: a.agent_notes,
+              order_index: i,
+              estimated_cost: a.estimated_cost,
+              is_gift: a.is_gift,
+              paid_by: a.paid_by,
+            })) as any
+          );
+
+        if (insertError) {
+          console.error('插入活动失败:', insertError);
+          throw insertError;
+        }
 
         toast.success('计划已更新');
       } else {
         // 创建新计划
-        const { data: planData } = await (supabase as any).from('date_plans' as any).insert({
-          relationship_id: relationshipId,
-          plan_date: formatDateInLA(selectedDate),
-          notes,
-          is_completed: false
-        }).select().single();
+        const { data: planData, error: planError } = await (supabase as any)
+          .from('date_plans' as any)
+          .insert({
+            relationship_id: relationshipId,
+            plan_date: formatDateInLA(selectedDate),
+            notes,
+            is_completed: false,
+          })
+          .select()
+          .single();
 
-        await (supabase as any).from('date_plan_activities' as any).insert(
-          sortedActivities.map((a, i) => ({ 
-            plan_id: planData!.id, 
-            activity_time: a.activity_time,
-            activity_end_time: a.activity_end_time,
-            location_name: a.location_name,
-            location_address: a.location_address,
-            location_type: a.location_type,
-            description: a.description,
-            weather_condition: a.weather_condition,
-            temperature: a.temperature,
-            recommended_dishes: a.recommended_dishes,
-            contact_name: a.contact_name,
-            contact_phone: a.contact_phone,
-            agent_notes: a.agent_notes,
-            order_index: i
-          })) as any
-        );
+        if (planError || !planData) {
+          console.error('创建计划失败:', planError);
+          throw planError;
+        }
+
+        const { error: insertError } = await (supabase as any)
+          .from('date_plan_activities' as any)
+          .insert(
+            sortedActivities.map((a, i) => ({
+              plan_id: planData!.id,
+              activity_time: a.activity_time,
+              activity_end_time: a.activity_end_time,
+              location_name: a.location_name?.trim() || '未命名活动',
+              location_address: a.location_address,
+              location_type: a.location_type,
+              description: a.description,
+              weather_condition: a.weather_condition,
+              temperature: a.temperature,
+              recommended_dishes: a.recommended_dishes,
+              contact_name: a.contact_name,
+              contact_phone: a.contact_phone,
+              agent_notes: a.agent_notes,
+              order_index: i,
+              estimated_cost: a.estimated_cost,
+              is_gift: a.is_gift,
+              paid_by: a.paid_by,
+            })) as any
+          );
+
+        if (insertError) {
+          console.error('插入活动失败:', insertError);
+          throw insertError;
+        }
 
         toast.success('计划已添加');
       }
-      
+
       setIsDialogOpen(false);
       setEditingPlan(null);
       setSelectedDate(undefined);
       setNotes("");
-      setActivities([{ id: `temp-${Date.now()}`, activity_time: "", location_name: "", location_address: "", location_type: "", description: "", order_index: 0 }]);
+      setActivities([
+        {
+          id: `temp-${Date.now()}`,
+          activity_time: "",
+          location_name: "",
+          location_address: "",
+          location_type: "",
+          description: "",
+          order_index: 0,
+        },
+      ]);
       fetchPlans();
     } catch (error) {
-      toast.error(editingPlan ? '更新失败' : '添加失败');
+      console.error('保存计划失败:', error);
+      toast.error(editingPlan ? '更新失败，请稍后重试' : '添加失败，请稍后重试');
     }
   };
 
