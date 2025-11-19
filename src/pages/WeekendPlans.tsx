@@ -349,7 +349,6 @@ const WeekendPlans = () => {
   };
 
   const handleAddActivity = () => {
-    console.log('handleAddActivity called, current activities:', activities.length);
     const newActivity = { 
       id: `temp-${Date.now()}`, 
       activity_time: "", 
@@ -359,7 +358,6 @@ const WeekendPlans = () => {
       description: "", 
       order_index: activities.length 
     };
-    console.log('Adding new activity:', newActivity);
     setActivities([...activities, newActivity]);
     setTimeout(() => {
       activitiesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -642,8 +640,14 @@ const WeekendPlans = () => {
   };
 
   const handleSavePlan = async () => {
-    if (!selectedDate || activities.filter(a => a.location_name.trim()).length === 0) {
-      toast.error('请填写必要信息');
+    if (!selectedDate) {
+      toast.error('请选择约会日期');
+      return;
+    }
+    
+    const validActivities = activities.filter(a => a.location_name.trim());
+    if (validActivities.length === 0) {
+      toast.error('请至少添加一个活动并填写地点名称');
       return;
     }
 
@@ -850,23 +854,30 @@ const WeekendPlans = () => {
                     </Button>
                   </div>
 
-                  {activities.map((activity, i) => (
-                    <Card key={i} className={`p-4 space-y-4 transition-colors duration-300 ${activityColors[i % activityColors.length]}`}>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {activity.location_type && (
-                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background/50">
-                              {getActivityIcon(activity.location_type)}
-                            </div>
-                          )}
-                          <span className="font-medium text-sm">活动 {i + 1}</span>
-                        </div>
-                        {activities.length > 1 && (
+                  {activities.length === 0 ? (
+                    <Card className="p-8 text-center border-dashed">
+                      <p className="text-muted-foreground mb-4">还没有添加活动，点击下方按钮开始添加</p>
+                      <Button type="button" onClick={handleAddActivity} variant="outline">
+                        <Plus className="h-4 w-4 mr-2" />
+                        添加第一个活动
+                      </Button>
+                    </Card>
+                  ) : (
+                    activities.map((activity, i) => (
+                      <Card key={i} className={`p-4 space-y-4 transition-colors duration-300 ${activityColors[i % activityColors.length]}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {activity.location_type && (
+                              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background/50">
+                                {getActivityIcon(activity.location_type)}
+                              </div>
+                            )}
+                            <span className="font-medium text-sm">活动 {i + 1}</span>
+                          </div>
                           <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveActivity(i)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        )}
-                      </div>
+                        </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <input
@@ -1082,7 +1093,8 @@ const WeekendPlans = () => {
                         )}
                       </div>
                     </Card>
-                  ))}
+                  ))
+                  )}
                   
                   {/* 总预算统计 */}
                   {activities.length > 0 && (
