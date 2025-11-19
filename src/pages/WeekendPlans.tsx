@@ -698,12 +698,12 @@ const WeekendPlans = () => {
           .insert(
             sortedActivities.map((a, i) => ({
               plan_id: editingPlan.id,
-              activity_time: a.activity_time,
-              activity_end_time: a.activity_end_time,
+              activity_time: a.activity_time?.trim() || null,
+              activity_end_time: a.activity_end_time?.trim() || null,
               location_name: a.location_name?.trim() || '未命名活动',
-              location_address: a.location_address,
-              location_type: a.location_type,
-              description: a.description,
+              location_address: a.location_address?.trim() || null,
+              location_type: a.location_type || null,
+              description: a.description?.trim() || null,
               weather_condition: a.weather_condition,
               temperature: a.temperature,
               recommended_dishes: a.recommended_dishes,
@@ -711,9 +711,9 @@ const WeekendPlans = () => {
               contact_phone: a.contact_phone,
               agent_notes: a.agent_notes,
               order_index: i,
-              estimated_cost: a.estimated_cost,
-              is_gift: a.is_gift,
-              paid_by: a.paid_by,
+              estimated_cost: a.estimated_cost || 0,
+              is_gift: a.is_gift || false,
+              paid_by: a.paid_by || null,
             })) as any
           );
 
@@ -746,12 +746,12 @@ const WeekendPlans = () => {
           .insert(
             sortedActivities.map((a, i) => ({
               plan_id: planData!.id,
-              activity_time: a.activity_time,
-              activity_end_time: a.activity_end_time,
+              activity_time: a.activity_time?.trim() || null,
+              activity_end_time: a.activity_end_time?.trim() || null,
               location_name: a.location_name?.trim() || '未命名活动',
-              location_address: a.location_address,
-              location_type: a.location_type,
-              description: a.description,
+              location_address: a.location_address?.trim() || null,
+              location_type: a.location_type || null,
+              description: a.description?.trim() || null,
               weather_condition: a.weather_condition,
               temperature: a.temperature,
               recommended_dishes: a.recommended_dishes,
@@ -759,9 +759,9 @@ const WeekendPlans = () => {
               contact_phone: a.contact_phone,
               agent_notes: a.agent_notes,
               order_index: i,
-              estimated_cost: a.estimated_cost,
-              is_gift: a.is_gift,
-              paid_by: a.paid_by,
+              estimated_cost: a.estimated_cost || 0,
+              is_gift: a.is_gift || false,
+              paid_by: a.paid_by || null,
             })) as any
           );
 
