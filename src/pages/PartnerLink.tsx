@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { MobileNav } from "@/components/MobileNav";
+import { MichaelAiChat } from "@/components/MichaelAiChat";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Heart, Copy, UserPlus, ArrowLeft, Users, Calendar as CalendarIcon } from "lucide-react";
@@ -352,6 +353,11 @@ const PartnerLink = () => {
             </Card>
           </>
         )}
+        
+        {/* Michael 小公主 AI 聊天 */}
+        <div className="mt-6">
+          <MichaelAiChat />
+        </div>
       </div>
       
       <MobileNav userId={user?.id} />
