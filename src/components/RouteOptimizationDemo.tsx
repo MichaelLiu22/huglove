@@ -42,9 +42,6 @@ export const RouteOptimizationDemo = ({ open, onClose }: RouteOptimizationDemoPr
             allowFullScreen
             title="Dijkstra Algorithm Visualization"
           />
-          {/* 遮罩层覆盖YouTube logo和品牌信息 */}
-          <div className="absolute bottom-0 right-0 w-32 h-16 bg-gradient-to-tl from-background/95 to-transparent pointer-events-none" />
-          <div className="absolute top-0 right-0 w-24 h-12 bg-gradient-to-bl from-background/90 to-transparent pointer-events-none" />
           
           {/* 播放速度提示 */}
           <div className="absolute top-4 left-4 bg-background/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-border">
