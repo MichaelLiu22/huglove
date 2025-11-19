@@ -16,6 +16,7 @@ import Approvals from "./pages/Approvals";
 import NotFound from "./pages/NotFound";
 import WeekendPlans from "./pages/WeekendPlans";
 import Wishlist from "./pages/Wishlist";
+import AnniversaryHistory from "./pages/AnniversaryHistory";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/approvals" element={<Approvals />} />
             <Route path="/weekend-plans" element={<WeekendPlans />} />
             <Route path="/wishlist" element={<Wishlist />} />
+            <Route path="/anniversary-history" element={<AnniversaryHistory />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
