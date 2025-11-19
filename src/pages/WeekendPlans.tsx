@@ -28,6 +28,7 @@ import { ActivityReviewDialog } from "@/components/ActivityReviewDialog";
 import { BillAnalysisDialog } from "@/components/BillAnalysisDialog";
 import { SmartRoutePlanner } from "@/components/SmartRoutePlanner";
 import { RouteMapView } from "@/components/RouteMapView";
+import { RouteOptimizationDemo } from "@/components/RouteOptimizationDemo";
 
 interface Activity {
   id: string;
@@ -134,6 +135,7 @@ const WeekendPlans = () => {
     totalActivityTime: number;
     estimatedEndTime: string;
   }>>({});
+  const [showDemoDialog, setShowDemoDialog] = useState(false);
   
   // 复制到剪贴板函数
   const handleCopyToClipboard = async (text: string, label: string) => {
@@ -520,6 +522,19 @@ const WeekendPlans = () => {
     if (relationshipId) fetchPlans();
   }, [relationshipId]);
 
+  // 首次访问检测 - 显示算法演示
+  useEffect(() => {
+    const hasSeenDemo = localStorage.getItem('hasSeenRouteDemoDialog');
+    
+    if (!hasSeenDemo && relationshipId) {
+      const timer = setTimeout(() => {
+        setShowDemoDialog(true);
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [relationshipId]);
+
   // 监听activities变化并实时更新地图
   useEffect(() => {
     // 只在对话框打开且有活动时才地理编码
@@ -544,6 +559,14 @@ const WeekendPlans = () => {
     } catch (error) {
       console.error('Error:', error);
     }
+  };
+
+  const handleDemoClose = (dontShowAgain: boolean) => {
+    if (dontShowAgain) {
+      localStorage.setItem('hasSeenRouteDemoDialog', 'true');
+      toast.success("已记住您的选择");
+    }
+    setShowDemoDialog(false);
   };
 
   const fetchPlans = async () => {
@@ -2219,6 +2242,11 @@ const WeekendPlans = () => {
           partnerNickname={partnerProfile?.nickname || "对方"}
         />
       )}
+
+      <RouteOptimizationDemo 
+        open={showDemoDialog}
+        onClose={handleDemoClose}
+      />
     </div>
   );
 };
