@@ -1735,7 +1735,7 @@ const WeekendPlans = () => {
                               <div className="flex-1 min-w-0">
                                 <div className="text-xs text-muted-foreground">总距离</div>
                                 <div className="text-sm font-medium truncate">
-                                  {(planRouteInfo[p.id].totalDistance / 1000).toFixed(1)} 公里
+                                  {planRouteInfo[p.id].totalDistance.toFixed(1)} 公里
                                 </div>
                               </div>
                             </div>
@@ -2058,7 +2058,7 @@ const WeekendPlans = () => {
                               <div className="flex-1 min-w-0">
                                 <div className="text-xs text-muted-foreground">总距离</div>
                                 <div className="text-sm font-medium truncate">
-                                  {(planRouteInfo[p.id].totalDistance / 1000).toFixed(1)} 公里
+                                  {planRouteInfo[p.id].totalDistance.toFixed(1)} 公里
                                 </div>
                               </div>
                             </div>

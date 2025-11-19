@@ -143,6 +143,63 @@ export function RouteMapView({ locations, mapboxToken }: RouteMapViewProps) {
               'line-opacity': 0.9,
             },
           });
+
+          // Add distance labels between each pair of reachable locations
+          if (route.legs && route.legs.length > 0) {
+            const segmentFeatures = route.legs
+              .map((leg: any, index: number) => {
+                if (index >= reachableLocations.length - 1) return null;
+                const from = reachableLocations[index];
+                const to = reachableLocations[index + 1];
+
+                if (!from.longitude || !from.latitude || !to.longitude || !to.latitude) {
+                  return null;
+                }
+
+                const midLng = (from.longitude + to.longitude) / 2;
+                const midLat = (from.latitude + to.latitude) / 2;
+                const distanceKm = (leg.distance / 1000).toFixed(1);
+
+                return {
+                  type: 'Feature',
+                  properties: {
+                    distance: distanceKm,
+                  },
+                  geometry: {
+                    type: 'Point',
+                    coordinates: [midLng, midLat],
+                  },
+                };
+              })
+              .filter(Boolean) as any[];
+
+            if (segmentFeatures.length > 0 && map.current) {
+              map.current.addSource('segment-labels', {
+                type: 'geojson',
+                data: {
+                  type: 'FeatureCollection',
+                  features: segmentFeatures,
+                },
+              });
+
+              map.current.addLayer({
+                id: 'segment-labels-layer',
+                type: 'symbol',
+                source: 'segment-labels',
+                layout: {
+                  'text-field': ['concat', ['get', 'distance'], ' 公里'],
+                  'text-size': 11,
+                  'text-offset': [0, 1.2],
+                  'text-anchor': 'top',
+                },
+                paint: {
+                  'text-color': 'hsl(var(--primary))',
+                  'text-halo-color': '#ffffff',
+                  'text-halo-width': 1.5,
+                },
+              });
+            }
+          }
         } else {
           // Fallback to simple line if directions API fails (only for reachable locations)
           const coordinates = reachableLocations.map(loc => [loc.longitude!, loc.latitude!]);
