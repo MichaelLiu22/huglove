@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon, Edit, Loader2, UtensilsCrossed, Coffee, Trees, Film, ShoppingBag, UserCircle, MoreHorizontal, Gift, BookHeart, Star, Copy, Phone, Bot } from "lucide-react";
+import { ArrowLeft, CalendarHeart, MapPin, Plus, Check, Cloud, Trash2, Calendar as CalendarIcon, Edit, Loader2, UtensilsCrossed, Coffee, Trees, Film, ShoppingBag, UserCircle, MoreHorizontal, Gift, BookHeart, Star, Copy, Phone, Bot, Route, Clock, Timer, CalendarClock } from "lucide-react";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { MobileNav } from "@/components/MobileNav";
@@ -48,6 +48,7 @@ interface Activity {
   contact_phone?: string;
   agent_notes?: string;
   estimated_cost?: number;
+  estimated_duration?: number;
   is_gift?: boolean;
   paid_by?: string;
   latitude?: number;
@@ -60,6 +61,12 @@ interface DatePlan {
   notes: string;
   is_completed: boolean;
   activities: Activity[];
+  start_location_address?: string;
+  start_location_lat?: number;
+  start_location_lng?: number;
+  end_location_address?: string;
+  end_location_lat?: number;
+  end_location_lng?: number;
 }
 
 const WeekendPlans = () => {
@@ -121,6 +128,12 @@ const WeekendPlans = () => {
     locationType: string;
     time?: string;
   }>>>({});
+  const [planRouteInfo, setPlanRouteInfo] = useState<Record<string, {
+    totalDistance: number;
+    totalDrivingTime: number;
+    totalActivityTime: number;
+    estimatedEndTime: string;
+  }>>({});
   
   // 复制到剪贴板函数
   const handleCopyToClipboard = async (text: string, label: string) => {
@@ -356,11 +369,12 @@ const WeekendPlans = () => {
     setIsGeocodingLive(false);
   };
 
-  // 为所有计划准备地图数据
+  // 为所有计划准备地图数据和路线优化信息
   const loadMapDataForPlans = async (plans: DatePlan[]) => {
     if (!mapboxToken) return;
     
     const mapData: Record<string, Array<any>> = {};
+    const routeInfo: Record<string, any> = {};
     
     for (const plan of plans) {
       if (plan.activities && plan.activities.length > 0) {
@@ -413,11 +427,58 @@ const WeekendPlans = () => {
         
         if (results.length > 0) {
           mapData[plan.id] = results;
+          
+          // 如果有2个或以上地点，获取路线优化信息
+          if (results.length >= 2) {
+            try {
+              // 准备优化路线请求
+              const places = plan.activities.map((a: Activity) => ({
+                name: a.location_name,
+                address: a.location_address,
+                type: a.location_type || '其他',
+                priority: 'must_go',
+                estimatedDuration: a.estimated_duration || 60,
+                openTime: a.activity_time ? a.activity_time.split('-')[0] : undefined,
+                closeTime: a.activity_time ? a.activity_time.split('-')[1] : undefined
+              })).filter((p: any) => p.address);
+              
+              if (places.length >= 2) {
+                const { data: routeData, error: routeError } = await supabase.functions.invoke('optimize-date-route', {
+                  body: {
+                    startPoint: {
+                      address: plan.start_location_address || places[0].address,
+                      lat: plan.start_location_lat || results[0].latitude,
+                      lng: plan.start_location_lng || results[0].longitude
+                    },
+                    endPoint: {
+                      address: plan.end_location_address || places[places.length - 1].address,
+                      lat: plan.end_location_lat || results[results.length - 1].latitude,
+                      lng: plan.end_location_lng || results[results.length - 1].longitude
+                    },
+                    places: places,
+                    startTime: plan.activities[0]?.activity_time?.split('-')[0] || '09:00'
+                  }
+                });
+                
+                if (!routeError && routeData?.summary) {
+                  routeInfo[plan.id] = {
+                    totalDistance: routeData.summary.totalDistance,
+                    totalDrivingTime: routeData.summary.totalDrivingTime,
+                    totalActivityTime: routeData.summary.totalActivityTime,
+                    estimatedEndTime: routeData.summary.estimatedEndTime
+                  };
+                }
+              }
+            } catch (error) {
+              console.error(`Failed to optimize route for plan ${plan.id}:`, error);
+            }
+          }
         }
       }
     }
     
     setPlanMapLocations(mapData);
+    setPlanRouteInfo(routeInfo);
   };
 
   useEffect(() => {
@@ -1599,10 +1660,10 @@ const WeekendPlans = () => {
 
                     {/* 活动地点地图 */}
                     {planMapLocations[p.id] && planMapLocations[p.id].length > 0 && (
-                      <div className="space-y-2 mt-6 pt-4 border-t">
+                      <div className="space-y-3 mt-6 pt-4 border-t">
                         <Label className="flex items-center gap-2 text-sm font-medium">
                           <MapPin className="h-4 w-4" />
-                          活动地点地图
+                          活动地点地图与路线规划
                         </Label>
                         <div className="rounded-lg overflow-hidden border border-border h-[300px] shadow-sm">
                           <RouteMapView 
@@ -1610,8 +1671,63 @@ const WeekendPlans = () => {
                             mapboxToken={mapboxToken}
                           />
                         </div>
+                        
+                        {/* 路线优化信息 */}
+                        {planRouteInfo[p.id] && (
+                          <div className="grid grid-cols-2 gap-2 p-3 bg-muted/30 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Route className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs text-muted-foreground">总距离</div>
+                                <div className="text-sm font-medium truncate">
+                                  {(planRouteInfo[p.id].totalDistance / 1000).toFixed(1)} 公里
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                <Clock className="h-4 w-4 text-blue-500" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs text-muted-foreground">行驶时间</div>
+                                <div className="text-sm font-medium truncate">
+                                  {Math.round(planRouteInfo[p.id].totalDrivingTime)} 分钟
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                                <Timer className="h-4 w-4 text-green-500" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs text-muted-foreground">活动时间</div>
+                                <div className="text-sm font-medium truncate">
+                                  {Math.round(planRouteInfo[p.id].totalActivityTime)} 分钟
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center">
+                                <CalendarClock className="h-4 w-4 text-orange-500" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs text-muted-foreground">预计结束</div>
+                                <div className="text-sm font-medium truncate">
+                                  {planRouteInfo[p.id].estimatedEndTime}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
                         <p className="text-xs text-muted-foreground text-center">
                           📍 {planMapLocations[p.id].length} 个活动地点
+                          {planRouteInfo[p.id] && ' • 已优化路线'}
                         </p>
                       </div>
                     )}
@@ -1867,10 +1983,10 @@ const WeekendPlans = () => {
 
                     {/* 活动地点地图 */}
                     {planMapLocations[p.id] && planMapLocations[p.id].length > 0 && (
-                      <div className="space-y-2 mt-6 pt-4 border-t">
+                      <div className="space-y-3 mt-6 pt-4 border-t">
                         <Label className="flex items-center gap-2 text-sm font-medium">
                           <MapPin className="h-4 w-4" />
-                          活动地点地图
+                          活动地点地图与路线规划
                         </Label>
                         <div className="rounded-lg overflow-hidden border border-border h-[300px] shadow-sm">
                           <RouteMapView 
@@ -1878,8 +1994,63 @@ const WeekendPlans = () => {
                             mapboxToken={mapboxToken}
                           />
                         </div>
+                        
+                        {/* 路线优化信息 */}
+                        {planRouteInfo[p.id] && (
+                          <div className="grid grid-cols-2 gap-2 p-3 bg-muted/30 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Route className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs text-muted-foreground">总距离</div>
+                                <div className="text-sm font-medium truncate">
+                                  {(planRouteInfo[p.id].totalDistance / 1000).toFixed(1)} 公里
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                <Clock className="h-4 w-4 text-blue-500" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs text-muted-foreground">行驶时间</div>
+                                <div className="text-sm font-medium truncate">
+                                  {Math.round(planRouteInfo[p.id].totalDrivingTime)} 分钟
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                                <Timer className="h-4 w-4 text-green-500" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs text-muted-foreground">活动时间</div>
+                                <div className="text-sm font-medium truncate">
+                                  {Math.round(planRouteInfo[p.id].totalActivityTime)} 分钟
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center">
+                                <CalendarClock className="h-4 w-4 text-orange-500" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs text-muted-foreground">实际结束</div>
+                                <div className="text-sm font-medium truncate">
+                                  {planRouteInfo[p.id].estimatedEndTime}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
                         <p className="text-xs text-muted-foreground text-center">
                           📍 {planMapLocations[p.id].length} 个活动地点
+                          {planRouteInfo[p.id] && ' • 已优化路线'}
                         </p>
                       </div>
                     )}
