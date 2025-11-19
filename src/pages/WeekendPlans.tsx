@@ -489,6 +489,19 @@ const WeekendPlans = () => {
   };
 
   useEffect(() => {
+    // 立即尝试从缓存加载token
+    const cachedToken = localStorage.getItem('mapbox_token');
+    const tokenTimestamp = localStorage.getItem('mapbox_token_timestamp');
+    
+    // 如果缓存的token未过期（24小时），直接使用
+    if (cachedToken && tokenTimestamp) {
+      const age = Date.now() - parseInt(tokenTimestamp);
+      if (age < 24 * 60 * 60 * 1000) { // 24小时
+        setMapboxToken(cachedToken);
+      }
+    }
+    
+    // 如果用户已登录，立即获取最新token（后台更新）
     if (user) {
       fetchRelationship();
       fetchMapboxToken();
@@ -511,10 +524,22 @@ const WeekendPlans = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setMapboxToken(data.token);
+        const token = data.token;
+        
+        // 更新state
+        setMapboxToken(token);
+        
+        // 缓存token到localStorage
+        localStorage.setItem('mapbox_token', token);
+        localStorage.setItem('mapbox_token_timestamp', Date.now().toString());
       }
     } catch (error) {
       console.error('Error fetching Mapbox token:', error);
+      // 如果获取失败，尝试使用缓存的token
+      const cachedToken = localStorage.getItem('mapbox_token');
+      if (cachedToken && !mapboxToken) {
+        setMapboxToken(cachedToken);
+      }
     }
   };
 
