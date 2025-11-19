@@ -12,7 +12,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { DijkstraVisualization } from './DijkstraVisualization';
 
 interface RouteOptimizationDemoProps {
   open: boolean;
@@ -35,8 +34,14 @@ export const RouteOptimizationDemo = ({ open, onClose }: RouteOptimizationDemoPr
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="my-6">
-          <DijkstraVisualization />
+        <div className="my-6 relative w-full aspect-video rounded-lg overflow-hidden bg-black">
+          <iframe
+            src="https://www.youtube-nocookie.com/embed/X7EMDd82ZmI?autoplay=1&mute=1&loop=1&playlist=X7EMDd82ZmI&controls=1&modestbranding=1&rel=0&showinfo=0&fs=1&playsinline=1"
+            className="absolute inset-0 w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title="Dijkstra Algorithm Visualization"
+          />
         </div>
 
         <div className="bg-muted/50 p-4 rounded-lg space-y-2 border border-border">
