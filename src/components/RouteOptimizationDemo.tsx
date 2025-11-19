@@ -29,7 +29,7 @@ export const RouteOptimizationDemo = ({ open, onClose }: RouteOptimizationDemoPr
             <Bot className="h-6 w-6 text-primary" />
             智能路线优化技术
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-base">
+          <AlertDialogDescription className="text-base flex items-center gap-1 flex-wrap">
             采用 <Badge variant="secondary" className="mx-1">Dijkstra 算法</Badge> 为您计算最优约会路线
           </AlertDialogDescription>
         </AlertDialogHeader>
