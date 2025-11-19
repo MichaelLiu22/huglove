@@ -50,6 +50,8 @@ interface Activity {
   estimated_cost?: number;
   is_gift?: boolean;
   paid_by?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface DatePlan {
@@ -100,6 +102,16 @@ const WeekendPlans = () => {
     locationType: string;
   }>>([]);
   const [mapboxToken, setMapboxToken] = useState<string>("");
+  const [liveMapLocations, setLiveMapLocations] = useState<Array<{
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    orderIndex: number;
+    locationType: string;
+    time?: string;
+  }>>([]);
+  const [isGeocodingLive, setIsGeocodingLive] = useState(false);
   
   // 复制到剪贴板函数
   const handleCopyToClipboard = async (text: string, label: string) => {
@@ -276,6 +288,65 @@ const WeekendPlans = () => {
     }
   };
 
+  // 实时地理编码函数
+  const geocodeActivitiesLive = async (activitiesToGeocode: Activity[]) => {
+    if (!mapboxToken) return;
+    
+    setIsGeocodingLive(true);
+    const results = [];
+    
+    for (let i = 0; i < activitiesToGeocode.length; i++) {
+      const activity = activitiesToGeocode[i];
+      
+      // 跳过没有地址的活动
+      if (!activity.location_address?.trim()) {
+        continue;
+      }
+      
+      // 如果已有经纬度（从数据库加载或之前地理编码过的），直接使用
+      if (activity.latitude && activity.longitude) {
+        results.push({
+          name: activity.location_name || '未命名活动',
+          address: activity.location_address,
+          latitude: activity.latitude,
+          longitude: activity.longitude,
+          orderIndex: i,
+          locationType: activity.location_type || '其他',
+          time: activity.activity_time
+        });
+        continue;
+      }
+      
+      // 调用Mapbox地理编码API
+      try {
+        const response = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(activity.location_address)}.json?access_token=${mapboxToken}&limit=1`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.features && data.features.length > 0) {
+            const [lng, lat] = data.features[0].center;
+            results.push({
+              name: activity.location_name || '未命名活动',
+              address: activity.location_address,
+              latitude: lat,
+              longitude: lng,
+              orderIndex: i,
+              locationType: activity.location_type || '其他',
+              time: activity.activity_time
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`Failed to geocode ${activity.location_address}:`, error);
+      }
+    }
+    
+    setLiveMapLocations(results);
+    setIsGeocodingLive(false);
+  };
+
   useEffect(() => {
     if (user) {
       fetchRelationship();
@@ -309,6 +380,22 @@ const WeekendPlans = () => {
   useEffect(() => {
     if (relationshipId) fetchPlans();
   }, [relationshipId]);
+
+  // 监听activities变化并实时更新地图
+  useEffect(() => {
+    // 只在对话框打开且有活动时才地理编码
+    if (isDialogOpen && activities.length > 0 && mapboxToken) {
+      // 使用防抖来避免频繁调用API
+      const timer = setTimeout(() => {
+        geocodeActivitiesLive(activities);
+      }, 500); // 500ms防抖延迟
+      
+      return () => clearTimeout(timer);
+    } else {
+      // 对话框关闭时清空地图
+      setLiveMapLocations([]);
+    }
+  }, [activities, isDialogOpen, mapboxToken]);
 
   const fetchRelationship = async () => {
     try {
@@ -1198,7 +1285,49 @@ const WeekendPlans = () => {
                   <div ref={activitiesEndRef} />
                 </div>
 
-                {/* 地图显示 */}
+                {/* 实时活动地图 - 显示所有已添加的活动地点 */}
+                {activities.length > 0 && (
+                  <div className="space-y-2 mt-4">
+                    <Label className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      活动地点地图
+                      {isGeocodingLive && (
+                        <span className="text-xs text-muted-foreground ml-2 flex items-center gap-1">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          定位中...
+                        </span>
+                      )}
+                    </Label>
+                    
+                    {liveMapLocations.length > 0 ? (
+                      <>
+                        <div className="rounded-lg overflow-hidden border border-border h-[350px] shadow-sm">
+                          <RouteMapView 
+                            locations={liveMapLocations}
+                            mapboxToken={mapboxToken}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground text-center">
+                          📍 {liveMapLocations.length} 个地点已标记
+                          {activities.length > liveMapLocations.length && (
+                            <span className="text-orange-500 ml-2">
+                              ({activities.length - liveMapLocations.length} 个地点待添加地址)
+                            </span>
+                          )}
+                        </p>
+                      </>
+                    ) : (
+                      <Card className="p-4 text-center border-dashed">
+                        <MapPin className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                        <p className="text-sm text-muted-foreground">
+                          添加活动地址后，地图将自动显示地点标记
+                        </p>
+                      </Card>
+                    )}
+                  </div>
+                )}
+
+                {/* 优化后的路线地图 */}
                 {optimizedRouteLocations.length > 0 && mapboxToken && (
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
