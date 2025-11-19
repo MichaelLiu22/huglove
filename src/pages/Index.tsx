@@ -6,8 +6,9 @@ import { AnniversaryCard } from "@/components/AnniversaryCard";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { MobileNav } from "@/components/MobileNav";
 import { BillSplitSettings } from "@/components/BillSplitSettings";
+import { MichaelAiChat } from "@/components/MichaelAiChat";
 import { calculateAnniversaries, getDaysTogether } from "@/lib/dateCalculations";
-import { Heart, Calendar, Sparkles, LogOut, Users, Star, BookHeart, Image, Edit2, CheckCircle2, CalendarHeart } from "lucide-react";
+import { Heart, Calendar, Sparkles, LogOut, Users, Star, BookHeart, Image, Edit2, CheckCircle2, CalendarHeart, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -344,6 +345,15 @@ const Index = () => {
                 约会
               </Button>
               <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/anniversary-history')}
+                className="hidden md:flex bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                <History className="w-4 h-4 mr-2" />
+                历史
+              </Button>
+              <Button
                 variant="outline"
                 size="sm"
                 onClick={handleReset}
@@ -435,20 +445,14 @@ const Index = () => {
         )}
 
 
-        {/* Past Anniversaries */}
-        {pastAnniversaries.length > 0 && (
-          <section className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-1 h-6 bg-muted rounded-full"></div>
-              <h2 className="text-xl md:text-2xl font-bold text-foreground">已度过的纪念日</h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-              {pastAnniversaries.slice(0, 6).map((anniversary) => (
-                <AnniversaryCard key={anniversary.id} {...anniversary} />
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Michael 小公主 AI */}
+        <section className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1 h-6 bg-gradient-primary rounded-full"></div>
+            <h2 className="text-xl md:text-2xl font-bold text-foreground">Michael 小公主 AI</h2>
+          </div>
+          <MichaelAiChat />
+        </section>
       </div>
 
       {/* Mobile Navigation */}
