@@ -7,6 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Send, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { calculateAnniversaries } from "@/lib/dateCalculations";
+import { parseDateInLA, formatDateInLA } from "@/lib/timezoneUtils";
 
 interface Message {
   role: "user" | "assistant";
@@ -14,6 +17,7 @@ interface Message {
 }
 
 export const MichaelAiChat = () => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -22,6 +26,7 @@ export const MichaelAiChat = () => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [context, setContext] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -31,6 +36,73 @@ export const MichaelAiChat = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // 获取日程和纪念日信息
+  useEffect(() => {
+    const fetchContext = async () => {
+      if (!user) return;
+
+      try {
+        // 获取关系信息
+        const { data: relationship, error: relError } = await supabase
+          .from('relationships')
+          .select('id, met_date, together_date')
+          .eq('user_id', user.id)
+          .single();
+
+        if (relError || !relationship) return;
+
+        // 计算即将到来的纪念日（未来30天内）
+        const metDate = parseDateInLA(relationship.met_date);
+        const togetherDate = parseDateInLA(relationship.together_date);
+        const anniversaries = calculateAnniversaries(metDate, togetherDate);
+        const upcomingAnniversaries = anniversaries
+          .filter(ann => !ann.isPast && ann.daysUntil <= 30)
+          .slice(0, 3);
+
+        // 获取近期约会计划（未来14天内）
+        const today = formatDateInLA(new Date());
+        const twoWeeksLater = formatDateInLA(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
+        
+        const { data: plans, error: plansError } = await supabase
+          .from('date_plans')
+          .select(`
+            id,
+            plan_date,
+            notes,
+            date_plan_activities (
+              id,
+              location_name
+            )
+          `)
+          .eq('relationship_id', relationship.id)
+          .eq('is_completed', false)
+          .gte('plan_date', today)
+          .lte('plan_date', twoWeeksLater)
+          .order('plan_date');
+
+        if (plansError) {
+          console.error('Error fetching plans:', plansError);
+          return;
+        }
+
+        const upcomingPlans = plans?.map(plan => ({
+          date: formatDateInLA(parseDateInLA(plan.plan_date)),
+          activities: plan.date_plan_activities?.length || 0,
+          notes: plan.notes
+        })) || [];
+
+        setContext({
+          upcomingAnniversaries,
+          upcomingPlans
+        });
+      } catch (error) {
+        console.error('Error fetching context:', error);
+      }
+    };
+
+    fetchContext();
+  }, [user]);
 
   const handleSend = async () => {
     const userMessage = input.trim();
@@ -44,7 +116,10 @@ export const MichaelAiChat = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke('partner-ai-chat', {
-        body: { messages: newMessages }
+        body: { 
+          messages: newMessages,
+          context: context
+        }
       });
 
       if (error) {
