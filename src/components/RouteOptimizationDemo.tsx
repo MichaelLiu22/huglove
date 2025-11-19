@@ -36,12 +36,22 @@ export const RouteOptimizationDemo = ({ open, onClose }: RouteOptimizationDemoPr
 
         <div className="my-6 relative w-full aspect-video rounded-lg overflow-hidden bg-black">
           <iframe
-            src="https://www.youtube-nocookie.com/embed/X7EMDd82ZmI?autoplay=1&mute=1&loop=1&playlist=X7EMDd82ZmI&controls=1&modestbranding=1&rel=0&showinfo=0&fs=1&playsinline=1"
+            src="https://www.youtube-nocookie.com/embed/CgW0HPHqFE8?autoplay=1&mute=1&loop=1&playlist=CgW0HPHqFE8&controls=1&modestbranding=1&rel=0&showinfo=0&fs=0&playsinline=1&cc_load_policy=0&iv_load_policy=3"
             className="absolute inset-0 w-full h-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             title="Dijkstra Algorithm Visualization"
           />
+          {/* 遮罩层覆盖YouTube logo和品牌信息 */}
+          <div className="absolute bottom-0 right-0 w-32 h-16 bg-gradient-to-tl from-background/95 to-transparent pointer-events-none" />
+          <div className="absolute top-0 right-0 w-24 h-12 bg-gradient-to-bl from-background/90 to-transparent pointer-events-none" />
+          
+          {/* 播放速度提示 */}
+          <div className="absolute top-4 left-4 bg-background/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-border">
+            <p className="text-xs font-medium text-muted-foreground">
+              💡 建议在视频播放器中调整速度至 1.5x-2x 观看
+            </p>
+          </div>
         </div>
 
         <div className="bg-muted/50 p-4 rounded-lg space-y-2 border border-border">
