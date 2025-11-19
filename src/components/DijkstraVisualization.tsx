@@ -53,87 +53,87 @@ export const DijkstraVisualization = () => {
     const width = canvas.width;
     const height = canvas.height;
 
-    // Generate nodes
+    // Generate nodes in street grid layout
     const nodes: Node[] = [];
-    const nodeCount = 18;
+    const gridRows = 5;
+    const gridCols = 7;
+    const nodeCount = gridRows * gridCols;
+    
+    const marginX = width * 0.1;
+    const marginY = height * 0.15;
+    const gridWidth = width - marginX * 2;
+    const gridHeight = height - marginY * 2;
+    const cellWidth = gridWidth / (gridCols - 1);
+    const cellHeight = gridHeight / (gridRows - 1);
 
-    // Start node (left side)
-    nodes.push({
-      id: 0,
-      x: width * 0.15,
-      y: height * 0.5,
-      distance: 0,
-      visited: false,
-      previous: null,
-      isStart: true,
-      isEnd: false,
-      exploring: false
-    });
-
-    // End node (right side)
-    nodes.push({
-      id: 1,
-      x: width * 0.85,
-      y: height * 0.5,
-      distance: Infinity,
-      visited: false,
-      previous: null,
-      isStart: false,
-      isEnd: true,
-      exploring: false
-    });
-
-    // Middle nodes (random positions)
-    for (let i = 2; i < nodeCount; i++) {
-      let x, y, tooClose;
-      do {
-        x = width * 0.25 + Math.random() * width * 0.5;
-        y = height * 0.15 + Math.random() * height * 0.7;
-        tooClose = nodes.some(n => {
-          const dx = n.x - x;
-          const dy = n.y - y;
-          return Math.sqrt(dx * dx + dy * dy) < 60;
+    let nodeId = 0;
+    
+    // Create grid nodes with slight random offsets for natural look
+    for (let row = 0; row < gridRows; row++) {
+      for (let col = 0; col < gridCols; col++) {
+        const baseX = marginX + col * cellWidth;
+        const baseY = marginY + row * cellHeight;
+        
+        // Add small random offset (except for start and end nodes)
+        const isStart = row === 2 && col === 0;
+        const isEnd = row === 2 && col === gridCols - 1;
+        const offsetX = (isStart || isEnd) ? 0 : (Math.random() - 0.5) * cellWidth * 0.2;
+        const offsetY = (isStart || isEnd) ? 0 : (Math.random() - 0.5) * cellHeight * 0.2;
+        
+        nodes.push({
+          id: nodeId++,
+          x: baseX + offsetX,
+          y: baseY + offsetY,
+          distance: isStart ? 0 : Infinity,
+          visited: false,
+          previous: null,
+          isStart,
+          isEnd,
+          exploring: false
         });
-      } while (tooClose);
-
-      nodes.push({
-        id: i,
-        x,
-        y,
-        distance: Infinity,
-        visited: false,
-        previous: null,
-        isStart: false,
-        isEnd: false,
-        exploring: false
-      });
+      }
     }
 
-    // Generate edges
+    // Generate edges in street-like pattern (horizontal, vertical, and some diagonals)
     const edges: Edge[] = [];
     const adjacency: number[][] = Array(nodeCount).fill(0).map(() => []);
 
-    nodes.forEach((node, i) => {
-      // Connect to 3-5 nearest nodes
-      const distances = nodes
-        .map((n, j) => ({
-          index: j,
-          dist: Math.sqrt((node.x - n.x) ** 2 + (node.y - n.y) ** 2)
-        }))
-        .filter(d => d.index !== i)
-        .sort((a, b) => a.dist - b.dist);
+    const addEdge = (from: number, to: number) => {
+      if (adjacency[from].includes(to)) return;
+      const fromNode = nodes[from];
+      const toNode = nodes[to];
+      const dist = Math.sqrt((fromNode.x - toNode.x) ** 2 + (fromNode.y - toNode.y) ** 2);
+      const weight = Math.round(dist * (0.9 + Math.random() * 0.2));
+      edges.push({ from, to, weight });
+      adjacency[from].push(to);
+      adjacency[to].push(from);
+    };
 
-      const connectionCount = 3 + Math.floor(Math.random() * 3);
-      for (let j = 0; j < Math.min(connectionCount, distances.length); j++) {
-        const targetIndex = distances[j].index;
-        if (!adjacency[i].includes(targetIndex)) {
-          const weight = Math.round(distances[j].dist * (0.8 + Math.random() * 0.4));
-          edges.push({ from: i, to: targetIndex, weight });
-          adjacency[i].push(targetIndex);
-          adjacency[targetIndex].push(i);
+    // Connect grid nodes like a street network
+    for (let row = 0; row < gridRows; row++) {
+      for (let col = 0; col < gridCols; col++) {
+        const currentIdx = row * gridCols + col;
+        
+        // Horizontal connections (streets going left-right)
+        if (col < gridCols - 1) {
+          addEdge(currentIdx, currentIdx + 1);
+        }
+        
+        // Vertical connections (streets going up-down)
+        if (row < gridRows - 1) {
+          addEdge(currentIdx, currentIdx + gridCols);
+        }
+        
+        // Some diagonal shortcuts (like diagonal streets in a city)
+        if (row < gridRows - 1 && col < gridCols - 1 && Math.random() > 0.6) {
+          addEdge(currentIdx, currentIdx + gridCols + 1);
+        }
+        
+        if (row < gridRows - 1 && col > 0 && Math.random() > 0.6) {
+          addEdge(currentIdx, currentIdx + gridCols - 1);
         }
       }
-    });
+    }
 
     // Animation state
     let animationState: AnimationState = 'INIT';
@@ -240,15 +240,15 @@ export const DijkstraVisualization = () => {
 
       const pulsePhase = timestamp * 0.005;
 
-      // State machine
-      if (animationState === 'INIT' && timestamp > 1000) {
+    // State machine (faster initialization)
+      if (animationState === 'INIT' && timestamp > 500) {
         animationState = 'EXPLORING';
         setStatusText("正在智能分析所有可能路径...");
       }
 
       if (animationState === 'EXPLORING') {
-        // Simulate Dijkstra exploration every 200ms
-        if (timestamp % 200 < deltaTime && unvisited.length > 0) {
+        // Simulate Dijkstra exploration every 80ms (faster)
+        if (timestamp % 80 < deltaTime && unvisited.length > 0) {
           // Find node with minimum distance
           let minDist = Infinity;
           let minIndex = -1;
@@ -285,37 +285,38 @@ export const DijkstraVisualization = () => {
               currentNode.visited = true;
               exploredCount++;
               setStatusText(`计算中：已探索 ${exploredCount}/${nodeCount} 个节点`);
-            }, 150);
+            }, 60);
 
             unvisited.splice(unvisited.indexOf(minIndex), 1);
 
-            // Check if we reached the end
-            if (minIndex === 1) {
+            // Check if we reached the end (find the end node)
+            const endNodeId = nodes.findIndex(n => n.isEnd);
+            if (minIndex === endNodeId) {
               setTimeout(() => {
                 animationState = 'FOUND';
                 // Reconstruct path
-                let current: number | null = 1;
+                let current: number | null = endNodeId;
                 shortestPath = [];
                 while (current !== null) {
                   shortestPath.unshift(current);
                   current = nodes[current].previous;
                 }
-                const totalDist = Math.round(nodes[1].distance);
+                const totalDist = Math.round(nodes[endNodeId].distance);
                 setStatusText(`✓ 找到最优路径！总距离 ${totalDist} 米`);
 
-                // Initialize particles
-                particles = Array(12).fill(0).map((_, i) => ({
+                // Initialize particles (more for visual effect)
+                particles = Array(16).fill(0).map((_, i) => ({
                   x: nodes[shortestPath[0]].x,
                   y: nodes[shortestPath[0]].y,
-                  progress: i * 0.08,
-                  speed: 0.015 + Math.random() * 0.01
+                  progress: i * 0.06,
+                  speed: 0.02 + Math.random() * 0.015
                 }));
 
                 setTimeout(() => {
                   animationState = 'PARTICLES';
                   setStatusText(`相比其他路线节省 28% 时间`);
-                }, 1000);
-              }, 500);
+                }, 600);
+              }, 300);
             }
           }
         }
