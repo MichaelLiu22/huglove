@@ -65,12 +65,10 @@ export default function Auth() {
   // Fetch real user count and subscribe to real-time updates
   useEffect(() => {
     const fetchUserCount = async () => {
-      const { count, error } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      const { data, error } = await supabase.rpc('get_user_count');
       
-      if (!error && count !== null) {
-        setRealUserCount(count * 3); // Multiply by 3
+      if (!error && data !== null) {
+        setRealUserCount(data * 3); // Multiply by 3
       }
     };
 
