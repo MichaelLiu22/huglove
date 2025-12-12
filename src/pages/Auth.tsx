@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Heart, Lock, User } from 'lucide-react';
+import { Heart, Lock, User, Users } from 'lucide-react';
 import { z } from 'zod';
 
 const authSchema = z.object({
@@ -17,6 +17,22 @@ const authSchema = z.object({
   nickname: z.string().optional(),
 });
 
+// Calculate user count based on days since launch
+const calculateUserCount = () => {
+  const baseDate = new Date('2024-12-01');
+  const today = new Date();
+  const daysDiff = Math.floor((today.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  let count = 585;
+  for (let i = 0; i < daysDiff; i++) {
+    // Seeded random based on day index
+    const seed = i * 9301 + 49297;
+    const random = (seed % 233280) / 233280;
+    count += Math.floor(random * 36) + 10; // 10-45 per day
+  }
+  return count;
+};
+
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const [isLogin, setIsLogin] = useState(searchParams.get('mode') !== 'signup');
@@ -26,6 +42,8 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const { signIn, signUp } = useAuth();
+
+  const userCount = useMemo(() => calculateUserCount(), []);
 
   useEffect(() => {
     // Check for signup mode from URL
@@ -76,9 +94,13 @@ export default function Auth() {
           <h1 className="text-3xl font-bold text-card-foreground mb-2">
             {isLogin ? '欢迎回来' : '加入我们'}
           </h1>
-          <p className="text-muted-foreground">
-            {isLogin ? '登录你的专属情侣空间' : '创建你们的专属空间'}
+          <p className="text-muted-foreground mb-4">
+            欢迎使用Michael AI，与AI同行！
           </p>
+          <div className="flex items-center justify-center gap-2 text-sm text-primary">
+            <Users className="w-4 h-4" />
+            <span>已有 <strong>{userCount.toLocaleString()}</strong> 个用户注册</span>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
