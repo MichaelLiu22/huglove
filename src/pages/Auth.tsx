@@ -19,16 +19,17 @@ const authSchema = z.object({
 
 // Calculate user count based on days since launch
 const calculateUserCount = () => {
-  const baseDate = new Date('2024-12-01');
+  const baseDate = new Date('2024-12-12'); // Today is 585
   const today = new Date();
   const daysDiff = Math.floor((today.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24));
   
   let count = 585;
+  // Only add from tomorrow onwards (daysDiff > 0)
   for (let i = 0; i < daysDiff; i++) {
     // Seeded random based on day index
     const seed = i * 9301 + 49297;
     const random = (seed % 233280) / 233280;
-    count += Math.floor(random * 36) + 10; // 10-45 per day
+    count += Math.floor(random * 11) + 5; // 5-15 per day (slower growth)
   }
   return count;
 };
