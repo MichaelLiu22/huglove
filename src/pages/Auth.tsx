@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Heart, Lock, User, Users } from 'lucide-react';
+import { Heart, Lock, User, Users, KeyRound } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -55,6 +55,7 @@ export default function Auth() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [realUserCount, setRealUserCount] = useState(0);
@@ -109,6 +110,13 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      // Check invite code for signup
+      if (!isLogin && inviteCode !== '1891') {
+        setErrors({ inviteCode: '邀请码错误' });
+        setLoading(false);
+        return;
+      }
+
       const validatedData = authSchema.parse({
         username,
         password,
@@ -175,23 +183,43 @@ export default function Auth() {
           </div>
 
           {!isLogin && (
-            <div className="space-y-2">
-              <Label htmlFor="nickname" className="text-card-foreground flex items-center gap-2">
-                <User className="w-4 h-4" />
-                昵称（可选）
-              </Label>
-              <Input
-                id="nickname"
-                type="text"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder="输入你的昵称，默认使用用户名"
-                className="bg-background border-border focus:ring-primary"
-              />
-              {errors.nickname && (
-                <p className="text-sm text-destructive">{errors.nickname}</p>
-              )}
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="inviteCode" className="text-card-foreground flex items-center gap-2">
+                  <KeyRound className="w-4 h-4" />
+                  邀请码
+                </Label>
+                <Input
+                  id="inviteCode"
+                  type="text"
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value)}
+                  required
+                  placeholder="请输入邀请码"
+                  className="bg-background border-border focus:ring-primary"
+                />
+                {errors.inviteCode && (
+                  <p className="text-sm text-destructive">{errors.inviteCode}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nickname" className="text-card-foreground flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  昵称（可选）
+                </Label>
+                <Input
+                  id="nickname"
+                  type="text"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="输入你的昵称，默认使用用户名"
+                  className="bg-background border-border focus:ring-primary"
+                />
+                {errors.nickname && (
+                  <p className="text-sm text-destructive">{errors.nickname}</p>
+                )}
+              </div>
+            </>
           )}
 
           <div className="space-y-2">
