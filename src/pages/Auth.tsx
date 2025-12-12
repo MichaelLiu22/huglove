@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Heart, Lock, User, Users } from 'lucide-react';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
 
 const authSchema = z.object({
   username: z.string()
@@ -17,30 +18,16 @@ const authSchema = z.object({
   nickname: z.string().optional(),
 });
 
-// Calculate user count based on 2-hour intervals since launch
-const calculateUserCount = () => {
-  const baseDate = new Date('2024-12-12T00:00:00'); // Base date
-  const now = new Date();
-  const hoursDiff = Math.floor((now.getTime() - baseDate.getTime()) / (1000 * 60 * 60));
-  const intervals = Math.floor(hoursDiff / 2); // Every 2 hours
-  
-  let count = 585;
-  for (let i = 0; i < intervals; i++) {
-    // Seeded random based on interval index (0-10)
-    const seed = i * 9301 + 49297;
-    const random = (seed % 233280) / 233280;
-    count += Math.floor(random * 11); // 0-10 per 2 hours
-  }
-  return count;
-};
-
 // Animated counter hook
 const useAnimatedCounter = (targetValue: number, duration: number = 1500) => {
   const [count, setCount] = useState(0);
   
   useEffect(() => {
+    if (targetValue === 0) return;
+    
     let startTime: number;
     let animationFrame: number;
+    const startValue = count;
     
     const animate = (currentTime: number) => {
       if (!startTime) startTime = currentTime;
@@ -48,7 +35,7 @@ const useAnimatedCounter = (targetValue: number, duration: number = 1500) => {
       
       // Easing function for smooth animation
       const easeOut = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(easeOut * targetValue));
+      setCount(Math.floor(startValue + easeOut * (targetValue - startValue)));
       
       if (progress < 1) {
         animationFrame = requestAnimationFrame(animate);
@@ -70,10 +57,46 @@ export default function Auth() {
   const [nickname, setNickname] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [realUserCount, setRealUserCount] = useState(0);
   const { signIn, signUp } = useAuth();
 
-  const targetUserCount = useMemo(() => calculateUserCount(), []);
-  const userCount = useAnimatedCounter(targetUserCount);
+  const userCount = useAnimatedCounter(realUserCount);
+
+  // Fetch real user count and subscribe to real-time updates
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      
+      if (!error && count !== null) {
+        setRealUserCount(count * 3); // Multiply by 3
+      }
+    };
+
+    fetchUserCount();
+
+    // Subscribe to real-time inserts on profiles table
+    const channel = supabase
+      .channel('user-count')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          // When new user registers, increment by 3
+          setRealUserCount(prev => prev + 3);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     // Check for signup mode from URL
