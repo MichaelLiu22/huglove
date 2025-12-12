@@ -17,20 +17,48 @@ const authSchema = z.object({
   nickname: z.string().optional(),
 });
 
-// Calculate user count based on days since launch
+// Calculate user count based on 2-hour intervals since launch
 const calculateUserCount = () => {
-  const baseDate = new Date('2024-12-12'); // Today is 585
-  const today = new Date();
-  const daysDiff = Math.floor((today.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24));
+  const baseDate = new Date('2024-12-12T00:00:00'); // Base date
+  const now = new Date();
+  const hoursDiff = Math.floor((now.getTime() - baseDate.getTime()) / (1000 * 60 * 60));
+  const intervals = Math.floor(hoursDiff / 2); // Every 2 hours
   
   let count = 585;
-  // Only add from tomorrow onwards (daysDiff > 0)
-  for (let i = 0; i < daysDiff; i++) {
-    // Seeded random based on day index
+  for (let i = 0; i < intervals; i++) {
+    // Seeded random based on interval index (0-10)
     const seed = i * 9301 + 49297;
     const random = (seed % 233280) / 233280;
-    count += Math.floor(random * 11) + 5; // 5-15 per day (slower growth)
+    count += Math.floor(random * 11); // 0-10 per 2 hours
   }
+  return count;
+};
+
+// Animated counter hook
+const useAnimatedCounter = (targetValue: number, duration: number = 1500) => {
+  const [count, setCount] = useState(0);
+  
+  useEffect(() => {
+    let startTime: number;
+    let animationFrame: number;
+    
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+      
+      // Easing function for smooth animation
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(easeOut * targetValue));
+      
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate);
+      }
+    };
+    
+    animationFrame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [targetValue, duration]);
+  
   return count;
 };
 
@@ -44,7 +72,8 @@ export default function Auth() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const { signIn, signUp } = useAuth();
 
-  const userCount = useMemo(() => calculateUserCount(), []);
+  const targetUserCount = useMemo(() => calculateUserCount(), []);
+  const userCount = useAnimatedCounter(targetUserCount);
 
   useEffect(() => {
     // Check for signup mode from URL
@@ -98,9 +127,9 @@ export default function Auth() {
           <p className="text-muted-foreground mb-4">
             欢迎使用Michael AI，与AI同行！
           </p>
-          <div className="flex items-center justify-center gap-2 text-sm text-primary">
+          <div className="flex items-center justify-center gap-2 text-sm text-primary animate-fade-in">
             <Users className="w-4 h-4" />
-            <span>已有 <strong>{userCount.toLocaleString()}</strong> 个用户注册</span>
+            <span>已有 <strong className="text-lg tabular-nums">{userCount.toLocaleString()}</strong> 个用户注册</span>
           </div>
         </div>
 
